@@ -1,0 +1,126 @@
+<!DOCtype HTML>
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="media.css">
+	<link href="https://fonts.googleapis.com/css?family=Comfortaa&display=swap" rel="stylesheet">
+</head>
+
+<body style="background: rgb(30, 30, 40);">
+	<div class="dropMedia">
+		<img src="import.png" style="position: relative; top: 11px; opacity: 0.9"> Drop media text bit
+	</div>
+
+	<div class="media" style="position: relative; top: 40px; width: 98%; left: 1%; border: 0px grey solid; height: auto; color: rgb(210, 210, 220)">
+		<div class="buttons">
+			<button id="p-10" class="Mbutton" onClick="pupdate(true)"><img src="arrowL.png" style="width: 50px; padding: 9px;"></button>
+			<button id="play" class="Mbutton" onClick="play_pause()"><img id="playImg" src="play.png" style="width: 40px; padding: 10px"></button>
+			<button id="p+10" class="Mbutton" onClick="pupdate(false)"><img src="arrowR.png" style="width: 50px; padding: 9px;"></button>
+		</div>
+		<div>
+			<div id="position" class="pos" style="left: 10%; width:20%;"></div>
+			<div id="maxPos" class="pos" style="right: 10%; text-align: right; top: -35px"></div>
+			<progress id="prog" max="4000" value="0" class="progress"></progress>
+			<div id="progressShowcase" style="width: 0px; height: 6px; position: absolute; background-color: black; border-radius: 3px; top: 110px; border: 3px rgba(216,166,47) solid; box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.5);"></div>
+		</div>
+	</div>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+	<script src="https://webtiming.github.io/timingsrc/lib/timingsrc-v2.js" text="javascript"></script>
+	<script src="https://www.mcorp.no/lib/mcorp-2.0.js" text="javascript"></script>
+	<script type="text/javascript">
+		var to = new TIMINGSRC.TimingObject();
+
+		window.onLoad = fixMax()
+
+		function fixMax() {
+			document.getElementById('maxPos').innerHTML = displayTime(document.getElementById('prog').max);
+		}
+
+		function updatePlay() {
+			var v = to.query();
+			var img = document.getElementById("playImg");
+			if (v.velocity == 1) {
+				img.src = "pause.png";
+			} else {
+				img.src = "play.png";
+			}
+		}
+
+		function pupdate(sub) {
+			var v = to.query();
+			if (sub) {
+				to.update({
+					position: v.position - 10
+				});
+			} else {
+				to.update({
+					position: v.position + 10
+				});
+			}
+		}
+
+		function play_pause() {
+			var v = to.query();
+			if (v.velocity == 1) {
+				to.update({
+					velocity: 0.0,
+					acceleration: 0.0
+				})
+			} else {
+				to.update({
+					velocity: 1.0,
+					acceleration: 0.0
+				})
+			}
+			updatePlay();
+		}
+
+		var value = document.getElementById('position');
+		to.on("timeupdate", function() {
+			var v = to.query();
+
+			value.innerHTML = displayTime(v.position);
+
+			document.getElementById("prog").value = v.position;
+			updatePlay();
+		});
+
+		var x = null;
+		var y = null;
+
+		document.addEventListener('mousemove', onMouseUpdate, false);
+		document.addEventListener('mouseenter', onMouseUpdate, false);
+
+		function onMouseUpdate(e) {
+			x = e.pageX;
+			y = e.pageY;
+			var prog = document.getElementById('prog');
+			var rect = prog.getBoundingClientRect();
+			if (x < rect.right && x > rect.left && y < rect.bottom && y > rect.top) {
+				document.getElementById("progressShowcase").style.left = x + "px";
+				console.log(document.getElementById("progressShowcase").style.left);
+			} else {
+				var v = to.query();
+				var r = (Math.floor(v.position) / prog.max) * (rect.right - rect.left) + ($(window).width() * 0.095);
+
+				document.getElementById("progressShowcase").style.left = r + "px";
+				console.log(r);
+			}
+		}
+
+		function displayTime(s) {
+			var houNum = Math.floor(s / 3600);
+			var minNum = ('0' + (Math.floor(s / 60) - (houNum * 60))).slice(-2);
+			var secNum = ('0' + (Math.floor(s - (minNum * 60) - (houNum * 3600)))).slice(-2);
+			if (s < 60) {
+				return '00:' + secNum;
+			} else if (s < 3600) {
+				return minNum + ":" + secNum;
+			} else {
+				return houNum + ":" + minNum + ":" + secNum;
+			}
+		}
+	</script>
+</body>
