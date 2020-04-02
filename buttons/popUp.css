@@ -1,0 +1,173 @@
+#join {
+  left: 0px;
+  text-align: center;
+}
+
+#join:after {
+  left: 0;
+  width: 100%;
+  background: linear-gradient(45deg, #D8A62F 5%, #FC8E00 100%);
+  border: 5px white;
+  border-style: hidden solid hidden hidden;
+  box-shadow: 1px 1px 1px black;
+}
+
+#host {
+  right: 0px;
+  text-align: right;
+}
+
+#host:after {
+  right: -90%;
+  width: 200%;
+  background: rgb(30, 30, 40);
+}
+
+#hostDup {
+  -webkit-transform-origin: bottom left;
+  -ms-transform-origin: bottom left;
+  transform-origin: bottom left;
+  -webkit-transform: skew(-30deg);
+  -ms-transform: skew(-30deg);
+  transform: skew(-30deg);
+  position: absolute;
+  right: -2%;
+  width: 14%;
+  border: 5px white;
+  border-style: hidden hidden hidden solid;
+}
+
+#hostDup:after {
+  right: -100%;
+  width: 200%;
+  background: rgb(30, 30, 40);
+}
+
+div {
+  display: inline-block;
+  padding: 1em 5em 1em 1em;
+  overflow: hidden;
+  color: #fff;
+  top: 0px;
+  width: 50%;
+  position: absolute;
+  height: 250px;
+  transition: 0.75s ease;
+}
+
+div:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 100%;
+  -webkit-transform-origin: 100% 0;
+  -ms-transform-origin: 100% 0;
+  transform-origin: 100% 0;
+  -webkit-transform: skew(-30deg);
+  -ms-transform: skew(-30deg);
+  transform: skew(-30deg);
+  z-index: -1;
+}
+
+button {
+  text-align: center;
+  font-family: Comfortaa, cursive;
+  font-size: 2.5em;
+  position: relative;
+  top: 30%;
+  padding: 0.5em;
+  background-color: inherit;
+  color: white;
+  border: 3px white solid;
+  border-radius: 3px;
+  transition: 0.5s ease;
+  display: inline;
+  z-index: 1;
+}
+
+button:hover {
+  background-color: white;
+  cursor: pointer;
+}
+
+#b1:hover, #new:hover, #ctrl:hover {
+  color: rgb(30, 30, 40);
+}
+
+#b2:hover {
+  color: #FC8E00;
+}
+
+p {
+  font-family: comfortaa, cursive;
+  font-size: 2.5em;
+  position: relative;
+  top: 60px;
+}
+
+#host p {
+  position: absolute;
+  left: 50%;
+  top: 40px;
+}
+
+input {
+  display: none;
+  color: white;
+  position: relative;
+  top: 120px;
+  font-size: 2.2em;
+  width: 35%;
+  margin-left: -35%;
+  font-family: comfortaa, cursive;
+  border: none;
+  background-color: inherit;
+  text-align: right;
+  outline: none;
+}
+
+input:focus {
+  border: 3px white;
+  border-radius: 3px;
+  border-style: hidden hidden solid hidden;
+}
+
+input::placeholder {
+  color: rgb(240, 240, 240);
+}
+
+#new, #ctrl {
+  display: none;
+  position: relative;
+  right: -2%;
+  font-size: 1.75em;
+  z-index: 1;
+  top: 120px;
+}
+
+#ctrl:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#arr {
+  display: none;
+  position: absolute;
+  width: 100px;
+  border: 2px white solid;
+}
+
+#arr:hover {
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.hoverable:hover {
+  cursor: pointer;
+  width: 13% !important;
+}
+
+#hostDup:hover {
+  cursor: pointer;
+  width: 17%;
+}

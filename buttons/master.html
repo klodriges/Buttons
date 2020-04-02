@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title></title>
+  <script src="js/timingsrc-min-v2.js"></script>
+  <script src="js/datacannon.js"></script>
+  <script src="js/mcorp-2.0.js"></script>
+  <link rel="stylesheet" href="media.css">
+  <link href="https://fonts.googleapis.com/css?family=Comfortaa&display=swap" rel="stylesheet">
+
+  <script>
+    var to = new TIMINGSRC.TimingObject();
+    var duration = new TIMINGSRC.TimingObject();
+    var app = MCorp.app("4329613155765215359");
+    app.ready.then(function() {
+      let _current_url_key;
+      let _active_key;
+      to.timingsrc = app.motions.private;
+      duration.timingsrc = app.motions.duration;
+      app.motion = app.motions.private;
+      app.is_active = false;
+      app.channel = "test"; // Will be some unique thing
+
+      let sequencer = new TIMINGSRC.Sequencer(to);
+      sequencer.filter = function(msg) {
+        if (msg.channel === app.channel) return true;
+        return false;
+      }
+      let dcannon = new DataCannon("wss://video.alfredsurgery.com/w/syncstuff", [sequencer]);
+      dcannon.ready.then(function() {
+        dcannon.subscribe(app.channel);
+        console.log("Subscribed, getting session id");
+        app.getSession(function(res) {
+          app.sid = res.sid;
+          dcannon.post(app.channel, {
+            startts: 0,
+            name: "session",
+            value: res.sid
+          });
+          console.log(app.channel, {
+            startts: 0,
+            name: "session",
+            value: res.sid
+          });
+          console.log("Got session", res);
+        });
+
+        // dcannon.post("test", {startts: 0, name: "foo", value: "bar", lat: 12.345, lon: 67.890});
+      });
+
+      sequencer.on("change", function(e) {
+        console.log("Change", e);
+        if (e.data.name == "resource") {
+          _current_url_key = e.key;
+          let u = e.data.value;
+          console.log("OPENING URL", u);
+        } else if (e.data.name == "active") {
+          _active_key = e.key;
+          app.is_active = e.data.value;
+          console.log("Active:", app.is_active);
+          document.querySelector("#isactive").innerHTML = app.is_active ? "active" : "inactive";
+        } else if (e.data.name == "session") {
+          // Remove any old session
+          if (e.data.value != app.sid) {
+            console.log("Removing old session key, was", e.data.value, "should be", app.sid);
+            dcannon.remove(app.channel, e.key);
+          }
+        } else {
+          console.log("Unknown message", e.data.name);
+        }
+      });
+      sequencer.on("remove", function(e) {
+        console.log("Remove", e);
+      });
+
+      app.openurl = function(url) {
+        let post = {
+          startts: 0,
+          name: "resource",
+          value: {
+            active: app.is_active,
+            url: url,
+            sessionid: app.sid
+          }
+        };
+        if (_current_url_key) {
+          post.key = _current_url_key;
+          post.id = _current_url_key;
+        }
+        console.log("Shold post", post);
+        dcannon.post("test", post);
+        app.motion.update(0, 0);
+      }
+
+      app.setActive = function(isactive) {
+        app.is_active = isactive;
+        let post = {
+          startts: 0,
+          name: "active",
+          value: isactive
+        };
+        if (_active_key) post.key = _active_key;
+        dcannon.post("test", post);
+      }
+
+      app.sequencer = sequencer;
+      app.dcannon = dcannon;
+    });
+
+    /*
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAy5vj4FNaAgSn_hcXe2salczQQeyaRnNA",
+      authDomain: "chromeplugin-1089.firebaseapp.com",
+      databaseURL: "https://chromeplugin-1089.firebaseio.com",
+      projectId: "chromeplugin-1089",
+      storageBucket: "chromeplugin-1089.appspot.com",
+      messagingSenderId: "303224679242",
+      appId: "1:303224679242:web:b0144812e39b9efee6efb3",
+      measurementId: "G-PSN4CTJGP1"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    function initApp() {
+      let token_sent = false;
+
+      // Listen for auth state changes.
+      firebase.auth().onAuthStateChanged(function(user) {
+        console.log('User state change detected from the Background script of the Chrome Extension:', user);
+        });
+
+      const messaging = firebase.messaging();
+      messaging.usePublicVapidKey("BFLVpfs6sUX7UsNhLJ0A9k6YQ-AB_oALNFQCM-P9zS4ap0KpCqnvX6ubwBcRJD4o5YktIvPrZPKILhBF9lqMKA8");
+
+      messaging.onTokenRefresh(() => {
+          messaging.getToken().then((refreshedToken) => {
+              console.log('Token is refreshed, should send to server?');
+              console.log(refreshedToken);
+            });
+        });
+
+      messaging.onMessage((payload) => {
+        console.log('Message received. ', payload);
+      });
+    }
+    */
+  </script>
+
+</head>
+
+<body style="background-color: rgb(30, 30, 40)">
+
+  <div class="dropMedia droparea">
+    <img src="img/import.png" style="position: relative; top: 11px; opacity: 0.9"> Drop media text bit
+  </div>
+
+  <div class="media" style="position: relative; top: 40px; width: 98%; left: 1%; border: 0px grey solid; height: auto; color: rgb(210, 210, 220)">
+    <div class="buttons">
+      <button id="p-10" class="Mbutton" onClick="pupdate(true)"><img src="img/arrowL.png" style="width: 50px; padding: 9px;"></button>
+      <button id="play" class="Mbutton" onClick="play_pause()"><img id="playImg" src="img/playL.png" style="width: 40px; padding: 10px"></button>
+      <button id="p+10" class="Mbutton" onClick="pupdate(false)"><img src="img/arrowR.png" style="width: 50px; padding: 9px;"></button>
+    </div>
+    <div>
+      <div id="position" class="pos" style="left: 10%; width:20%;"></div>
+      <div id="maxPos" class="pos" style="right: 10%; text-align: right; top: -35px">00:00</div>
+      <progress id="prog" max="4000" value="0" class="progress"></progress>
+      <div id="progressShowcase" style="width: 0px; height: 18px; position: absolute; background-color: black; border-radius: 3px; top: 102px; border: 3px rgba(216,166,47) solid;"></div>
+    </div>
+  </div>
+
+  <button style="display:none" id="activate">Toggle active</button>
+  <div style="display:none" id="isactive"></div>
+
+  <script>
+    // document.querySelector("#play").addEventListener("click", function() {
+    //   app.motion.update(null, 1);
+    // });
+    // document.querySelector("#pause").addEventListener("click", function() {
+    //   app.motion.update(null, 0);
+    // });
+    // document.querySelector("#start").addEventListener("click", function() {
+    //   app.motion.update(0, 1);
+    // });
+
+    document.querySelector("#activate").addEventListener("click", function() {
+      if (app.is_active) {
+        app.setActive(false);
+      } else {
+        app.setActive(true);
+      }
+    });
+
+    let drop_target = document.querySelector(".droparea");
+    drop_target.addEventListener("dragover", function(ev) {
+      ev.preventDefault();
+    });
+
+    drop_target.addEventListener("drop", function(ev) {
+      ev.preventDefault();
+      var data = ev.dataTransfer.getData("text");
+      console.log("GOT DROP DATA", data);
+      if (data.startsWith("http")) {
+        app.openurl(data);
+      };
+      updateMax();
+    });
+  </script>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script type="text/javascript">
+    duration.on("change", function() {
+      document.querySelector("#prog").setAttribute("max", this.pos);
+      document.getElementById('maxPos').innerHTML = displayTime(document.getElementById('prog').max);
+    });
+
+    function updatePlay() {
+      var img = document.getElementById("playImg");
+      if (to.vel) {
+        img.src = "img/pauseL.png";
+      } else {
+        img.src = "img/playL.png";
+      }
+    }
+
+    function pupdate(sub) {
+      if (sub) {
+        to.update({
+          position: to.pos - 10
+        });
+      } else {
+        to.update({
+          position: to.pos + 10
+        });
+      }
+    }
+
+    function play_pause() {
+      if (to.vel) {
+        to.update({
+          velocity: 0
+        });
+      } else {
+        to.update({
+          velocity: 1
+        });
+      }
+    }
+    to.on("change", updatePlay);
+
+    var value = document.getElementById('position');
+    to.on("timeupdate", function() {
+      var v = to.query();
+      value.innerHTML = displayTime(v.position);
+
+      document.getElementById("prog").value = v.velocity;
+      CheckProgressDisplayer();
+    });
+
+    var x = null;
+    var y = null;
+
+    document.addEventListener('mousemove', onMouseUpdate, false);
+    document.addEventListener('mouseenter', onMouseUpdate, false);
+
+    function onMouseUpdate(e) {
+      x = e.pageX;
+      y = e.pageY;
+      CheckProgressDisplayer();
+    }
+
+    document.body.addEventListener('click', function changePos() {
+      if (change) {
+        CheckProgressDisplayer();
+        tempPos = to.pos + (tempPos - to.pos);
+        console.log(tempPos);
+        to.update({
+          position: tempPos
+        });
+      }
+    }, true);
+
+    var tempPos;
+    var change = false;
+
+    function CheckProgressDisplayer() {
+      change = false;
+      var prog = document.getElementById('prog');
+      var rect = prog.getBoundingClientRect();
+      if (x < rect.right && x > rect.left && y < rect.bottom && y > rect.top) {
+        x = (x - $(window).width() * 0.015);
+        document.getElementById("progressShowcase").style.left = x + "px";
+        prog.style.height = "20px";
+        prog.style.marginTop = "-5px";
+        tempPos = (x - $(window).width() * 0.095) * (duration.pos / (rect.right - rect.left));
+        change = true;
+      } else {
+        var r = (Math.floor(to.pos) / prog.max) * (rect.right - rect.left) + ($(window).width() * 0.095);
+
+        document.getElementById("progressShowcase").style.left = r + "px";
+        prog.style.height = "10px";
+        prog.style.marginTop = "0px";
+      }
+    }
+
+    function displayTime(s) {
+      var houNum = Math.floor(s / 3600);
+      var minNum = ('0' + (Math.floor(s / 60) - (houNum * 60))).slice(-2);
+      var secNum = ('0' + (Math.floor(s - (minNum * 60) - (houNum * 3600)))).slice(-2);
+      if (s < 60) {
+        return '00:' + secNum;
+      } else if (s < 3600) {
+        return minNum + ":" + secNum;
+      } else {
+        return houNum + ":" + minNum + ":" + secNum;
+      }
+    }
+  </script>
+
+</body>
+
+</html>
