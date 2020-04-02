@@ -68,6 +68,12 @@ progress[value] {
   box-shadow: 0 2px 3px rgba(0, 0, 0, .5) inset;
   position: relative;
   margin: 0 0 1.5em;
+  transition: 0.1s ease;
+}
+
+progress:hover {
+  height: 20px;
+  margin-top: -5px;
 }
 
 progress[value]::-webkit-progress-bar {

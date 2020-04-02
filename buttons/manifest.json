@@ -1,0 +1,34 @@
+{
+  "manifest_version": 2,
+  "name": "Sync anything by Motion Corporation",
+  "description": "This extension hooks anyting up with Shared Motion",
+  "version": "0.1.4",
+  "background": {
+    "page": "background.html",
+    "persistent": true
+  },
+"browser_action":{
+	"default_popup": "popUp.html"
+},
+  "web_accessible_resources": [
+    "js/mcorp-2.0.js", "js/mediasync.js", "js/main.js"
+  ],
+  "content_scripts": [{
+    "matches": ["https://*/*"],
+    "js": [
+      "js/content.js"
+    ],
+    "run_at": "document_end"
+  }],
+  "permissions": [
+    "declarativeContent",
+    "https://dev.mcorp.no/*"
+  ],
+  "content_security_policy": "script-src 'self' https://dev.mcorp.no/magic.py/* https://www.gstatic.com/ https://*.firebaseio.com https://www.googleapis.com; object-src 'self'",
+  "oauth2": {
+    "client_id" : "303224679242-lvisj7ef49spg95fdblfd4hjifp8hu8e.apps.googleusercontent.com",
+    "scopes": [
+      "openid"
+    ]
+  }
+}
