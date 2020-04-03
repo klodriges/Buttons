@@ -5,6 +5,8 @@
 
   <script src="https://mcorp.no/lib/mcorp-2.0.js"></script>
   <script text="javascript" src="https://webtiming.github.io/timingsrc/lib/timingsrc-v2.js"></script>
+  <script src="js/datacannon.js"></script>
+
 
   <script>
 
@@ -14,13 +16,26 @@
     }
 
     var app = MCorp.app("8113568792798709392");
+    app.sessionid = "somesessionid"
     app.to_s = new TIMINGSRC.TimingObject();
     app.to_beats = new TIMINGSRC.ScaleConverter(app.to_s, 120/60.);  // BPM
     app.ready
     .then(function() {
-      let SERVER = "ws://localhost:4444";
+      let SERVER = "wss://audio.mcorp.no/ar/";
 
       app.to_s.timingsrc = app.motions.playback;  // should be recording
+      let sequencer = new TIMINGSRC.Sequencer(app.to_s);
+      app.sequencer = sequencer;  // Debug
+      let dcannon = new DataCannon("wss://audio.mcorp.no/dc/audio", [sequencer]);
+      dcannon.ready.then(function() {
+        dcannon.subscribe(app.sessionid);
+        // dcannon.post("test", {startts: 0, name: "foo", value: "bar", lat: 12.345, lon: 67.890});
+      });
+      app.dc = dcannon;
+
+      sequencer.on("change", function(item) {
+        console.log("Sequencer change", item);
+      });
 
       var Uploader = function(url, onError) {
         var API = {};
@@ -42,7 +57,8 @@
           }
 
           try {
-            ws = new WebSocket(url);      
+            ws = new WebSocket(url);
+            window.ws = ws;
             ws.binaryType = 'arraybuffer';
             console.log("Opening websocket");
             ws.onopen = function(event) {
@@ -66,6 +82,7 @@
               }
             };
             ws.onclose = function() {
+              console.log("CLOSED");
               ws = undefined;
             };
 
@@ -85,10 +102,21 @@
       };
       var upload = function() {
         if (ws === undefined) {
-          console.log("Upload requested, but not connected");
+          console.log("Upload requested, but not connected", window.ws);
           connect();
           return;
         }
+
+        // Check ws state
+        if (ws.readyState > 1) {
+          connect();
+          return;
+        }
+        if (ws.readyState == 0) {
+          console.log("WS still connecting");
+          return;
+        }
+
         var dv;
         if (metaChunks.length > 0) {
           console.log("Have metachunk");
@@ -101,13 +129,15 @@
           dv.setUint32(2, parseInt(localStorage.vizid));
           dv.setFloat64(6, data.ts);
 
-          dv.setFloat64(14, data.position.coords.latitude);
-          dv.setFloat64(22, data.position.coords.longitude);
-          dv.setUint16(30, data.position.coords.altitude);
-          dv.setUint16(32, data.position.coords.accuracy);
+          if (data.position) {
+            dv.setFloat64(14, data.position.coords.latitude);
+            dv.setFloat64(22, data.position.coords.longitude);
+            dv.setUint16(30, data.position.coords.altitude);
+            dv.setUint16(32, data.position.coords.accuracy);            
+          }
 
-          dv.setFloat64(34, data.heading);  // heading (0 degrees is north, 180 is south)
-          dv.setFloat64(42, data.pitch);  // pitch (0 degrees is flat, 180 is up)
+          dv.setFloat64(34, data.heading || 0);  // heading (0 degrees is north, 180 is south)
+          dv.setFloat64(42, data.pitch || 0);  // pitch (0 degrees is flat, 180 is up)
           _send(pkg);
           setTimeout(upload, 0);
         }
@@ -182,7 +212,7 @@
         document.querySelector("#status").innerHTML = status;
         //set_record_btn_active(true);
         statusTimeout = setTimeout(function() {
-          document.querySelector("#status").innerHTML = "Unplanned stop";
+          document.querySelector("#status").innerHTML = "Stopped";
           //set_record_btn_active(false);
         }, 1000);
         setTimeout(upload, 0);
@@ -223,58 +253,78 @@
       return API;
       };
 
-      navigator.mediaDevices.getUserMedia({audio: true})
-      .then(function(stream) {
-        app.calibrate = 0;
-        let options = {
-          mimeType: 'audio/ogg; codecs=opus'
-        };
-        var mediaRecorder = new MediaRecorder(stream);
-        window.mr = mediaRecorder;
-        console.log("Stream is", stream);
-        app.uploader = Uploader(SERVER);
-        let running = false;
-        app.motions.record.on("change", function() {
-          // If the record motion is running, we shold record!
-          if (this.pos) {  // We currently trigger on record - let this be a button
-            running = true;
-            console.log("Recording!");
-            mediaRecorder.start(100);
-          } else {
-            // Done
-            if (running)
-              mediaRecorder.stop();
-          }
-        });
-        
-        mediaRecorder.ondataavailable = function(e) {
-          console.log("GOT DATA");
-          if (!app.startTime) {
-            // We request 100ms of data, so date it back
-            // If we rather use app.motions.epoc.pos here we'll save all files
-            app.startTime = app.to_s.pos - 100 - app.calibrate;
-            // We shold share this url within the group
-            let url = "http://example.com/full/" + parseInt(localStorage.vizid) + "_" + Math.floor(app.startTime);
-            let profile = {
-              key: parseInt(localStorage.vizid),
-              name: "Some name",
-              url: url,
-              offset: app.to_s.pos
+      app.stop_recording = function() {
+        app.disabled = true;        
+      }
+      app.record = function() {
+        app.disabled = false;
+        navigator.mediaDevices.getUserMedia({audio: true})
+        .then(function(stream) {
+          app.calibrate = 0.100;
+          let options = {
+            mimeType: 'audio/ogg; codecs=opus'
+          };
+          var mediaRecorder = new MediaRecorder(stream);
+          window.mr = mediaRecorder;
+          console.log("Stream is", stream);
+          app.uploader = Uploader(SERVER);
+          let running = false;
+          app.motions.record.on("change", function() {
+            // If the record motion is running, we shold record!
+            if (this.pos) {  // We currently trigger on record - let this be a button
+              if (app.disabled) return;
+              app.uploader.reset();
+              running = true;
+              console.log("Recording!");
+              mediaRecorder.start(100);
+            } else {
+              // Done
+              if (running && mediaRecorder.state == "recording") {
+                mediaRecorder.stop();
+                document.querySelector("#status").innerHTML = "Stopped";
+              }
             }
-            console.log("My profile is now:", profile);
-            app.uploader.pushData(self.startTime - 0.100 - app.calibrate, e.data);
-          } else {
-            app.uploader.pushData(app.to_s.pos - 0.100 - app.calibrate, e.data);            
-          }
-        };
-      });
+          });
 
-      console.log("jabl");
+          mediaRecorder.ondataavailable = function(e) {
+            if (app.disabled && mediaRecorder.state == "recording") {
+              mediaRecorder.stop();
+              document.querySelector("#status").innerHTML = "Stopped";
+              return;
+            }
+            if (!app.startTime) {
+              // We request 100ms of data, so date it back
+              // If we rather use app.motions.epoc.pos here we'll save all files
+              let ts = app.to_s.pos - 0.100 - app.calibrate;
+              app.startTime = app.motions.epoc.pos - 0.100 - app.calibrate;
+              // We shold share this url within the group
+              let url = "https://audio.mcorp.no/audio/" + parseInt(localStorage.vizid) + "_" + Math.floor(app.startTime);
+              let profile = {
+                name: document.querySelector("#name").value,
+                url: url,
+                offset: ts
+              }
+              console.log("My profile is now:", profile);
+              dcannon.post(app.sessionid, {
+                id: parseInt(localStorage.vizid),
+                startts: ts,
+                endts: 100000000,
+                name: "profile",
+                value: profile
+              });
+              app.uploader.pushData(app.startTime, e.data);
+            } else {
+              app.uploader.pushData(app.motions.epoc.pos - 0.100 - app.calibrate, e.data);            
+            }
+          };
+        });
+      };
+
       // Metronome
       let draw_metronome = function() {
         // Repetitions is beats mod beats pr cycle
         let beat_nr = Math.floor(app.to_s.pos * (app.motions.bpm.pos / 60.));
-        document.querySelector("#rep").innerHTML = Math.floor(beat_nr / app.motions.bpc.pos);
+        document.querySelector("#rep").innerHTML = Math.floor(beat_nr / app.bpc);
         document.querySelector("#beat").innerHTML = Math.floor(beat_nr % app.motions.bpc.pos) + 1;
         //#rep
         requestAnimationFrame(draw_metronome);
@@ -292,7 +342,18 @@
         document.querySelector("#bpm").innerHTML = this.pos;
       });
       app.motions.bpc.on("change", function() {
-        document.querySelector("#bpc").innerHTML = this.pos;
+        app.bpc = Math.floor(this.pos);
+        app.bpc2 = Math.round((this.pos - app.bpc) * 10);
+        document.querySelector("#bpc").innerHTML = app.bpc + "/" + app.bpc2;
+      });
+
+
+      document.querySelector("#record").addEventListener("change", function(e) {
+        if (e.srcElement.checked) {
+          app.record();
+        } else {
+          app.stop_recording();
+        }
       });
     });
 
@@ -305,14 +366,26 @@
 <div id="status" class="status"></div>
 <div id="sent" class="sent"></div>
 
+<input type="text" id="name" value="Anonymous">
+<input type="checkbox" id="record"> Allow recordings
+
 <div class="metronome">
 
   <div id="rep"></div>
   <div id="beat"></div>
   <div><span id="bpm"></span>bpm</div>
-  <div><span id="bpc"></span>/4</div>
+  <div><span id="bpc"></span></span></div>
 
 </div>
 
+<script>
+  if (localStorage.nick) {
+    document.querySelector("#name").value = localStorage.nick;
+  };
+  document.querySelector("#name").addEventListener("change", function(e) {
+    console.log("Name changed", e.srcElement.value);
+    localStorage.nick = e.srcElement.value;
+  });
+</script>
 </body>
 </html>

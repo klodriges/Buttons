@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <script src="https://mcorp.no/lib/mcorp-2.0.js"></script>
+  <script src="https://mcorp.no/lib/mediasync.js"></script>
+  <script text="javascript" src="https://webtiming.github.io/timingsrc/lib/timingsrc-v2.js"></script>
+  <script src="js/datacannon.js"></script>
+
+  <style>
+    .player {
+      width: 250px;
+      display: inline-block;
+      margin: 10px;
+    }
+
+    .player audio {
+      width: 100%;
+    }
+  </style>
+
+</head>
+<body>
+
+  <span class="muteall"><input type="checkbox"/>Mute all</spn>
+  <button id="stop">Stop</button>
+  <button id="record">Record</button>
+  <button id="playback">Playback</button>
+  <button id="clearall">Clear all</button>
+  <br>
+  <input type="text" id="bpc" value="4" size=1>/<input type="text" id="bpc2" value="4" size=1>
+  <input type="text" id="bpm" value="120" size=4>Beats pr minute
+  <button id="setspeeds">Set speeds</button>
+
+  <div class="players">
+  </div>
+  <template id="template_player">
+    <div class="player">
+      <audio controls></audio>
+      <div class="name"></div>
+      <div class="timestamp"></div>
+  </template>
+
+<!--
+  <audio id="a1" src="0_1585762118.375907" controls></audio>
+  <audio id="a2" src="0_1585762296.012153" controls></audio>
+-->
+  <script>
+
+    document.querySelector(".muteall input").addEventListener("change", function(e) {
+      document.querySelectorAll("audio").forEach(function(elem) { elem.muted = e.srcElement.checked;});
+        console.log("MUTE");
+    });
+
+    var app = MCorp.app("8113568792798709392");
+    app.sessionid = "somesessionid"
+
+    app.ready.then(function() {
+      let syncs = {};
+      app.syncs = syncs;
+      app.to_s = new TIMINGSRC.TimingObject();
+      app.to_beats = new TIMINGSRC.ScaleConverter(app.to_s, 120/60.);  // BPM
+      app.to_playback = new TIMINGSRC.TimingObject();
+      app.to_playback.timingsrc = app.motions.playback;
+
+      app.motions.bpc.on("change", function() {
+        let bpc = Math.floor(this.pos);
+        let bpc2 = Math.round((this.pos - bpc) * 10);
+        document.querySelector("#bpc").value = bpc;
+        document.querySelector("#bpc2").value = bpc2;
+        console.log("Speeds changed");
+      });
+      app.motions.bpm.on("change", function() {
+        document.querySelector("#bpm").value = this.pos;
+      });
+
+      app.motions.record.on("change", function() {
+        console.log("Record change", this.pos);
+        for (let s in syncs) {
+          if (this.pos == 0) {  // Not recording
+            syncs[s].pause(false);
+            console.log("Pausing all");
+          } else {
+            syncs[s].pause(true);
+            document.querySelectorAll("audio").forEach(function(elem) {
+              elem.pause();
+            });
+            console.log("Unpausing all");
+          }
+        }
+      });
+
+      sequencer = TIMINGSRC.Sequencer(app.to_playback);
+      app.sequencer = sequencer;  // Debug
+      let dcannon = new DataCannon("wss://audio.mcorp.no/dc/audio", [sequencer]);
+      dcannon.ready.then(function() {
+        dcannon.subscribe(app.sessionid);
+        // dcannon.post("test", {startts: 0, name: "foo", value: "bar", lat: 12.345, lon: 67.890});
+      });
+      app.dc = dcannon;
+
+      let target = document.querySelector(".players");
+      sequencer.on("change", function(evt) {
+        let item = evt.data;
+        console.log("Sequencer change", item);
+        let val = item.value;
+        if (item.name == "profile") {
+          // Create a player
+          let player = target.querySelector("#player" + evt.key);
+          if (!player) {
+            let temp = document.querySelector("#template_player");
+            var clone = temp.content.cloneNode(true);
+            player = clone.querySelector("div");
+            player.setAttribute("id", "player" + evt.key);
+            target.append(player);
+          }
+          if (!syncs[evt.key]) {
+            syncs[evt.key] = MCorp.mediaSync(player.querySelector("audio"), app.motions.playback, {skew: -val.offset});
+          } else {
+            syncs[evt.key].setSkew(-val.offset);
+          }
+          if (app.motions.record.pos == 0) {
+            player.querySelector("audio").src = val.url;
+          } else {
+            console.log("Show that we're recording");
+          } 
+          player.querySelector(".name").innerHTML = val.name;
+          player.querySelector(".timestamp").innerHTML = new Date(item.modified * 1000);
+        }
+      });
+
+      sequencer.on("remove", function(evt) {
+        let player = target.querySelector("#player" + evt.key);
+        if (player) {
+          player.parentElement.remove(player);
+        };
+        if (syncs[evt.key]) {
+          syncs[evt.key].stop();
+          delete syncs[evt.key];
+        }
+      })
+
+      /*
+      sync1 = MCorp.mediaSync(document.querySelector("#a1"), app.motions.playback, {skew:-1585762118.375907});
+      sync2 = MCorp.mediaSync(document.querySelector("#a2"), app.motions.playback, {skew: -1585762296.012153});
+      app.motions.playback.update(0, 0);
+      */
+    });
+
+    document.querySelector("#setspeeds").addEventListener("click", function(e) {
+      app.motions.bpm.update(parseInt(document.querySelector("#bpm").value));
+      let bpc = document.querySelector("#bpc");
+      let bpc2 = document.querySelector("#bpc2")
+      console.log("update", parseInt(bpc.value) + (parseInt(bpc2.value) / 10.));
+      app.motions.bpc.update(parseInt(bpc.value) + (parseInt(bpc2.value) / 10.));
+    });
+
+    document.querySelector("#stop").addEventListener("click", function() {
+      app.motions.record.update(0);
+      app.motions.playback.update(0, 0);
+    });
+
+    document.querySelector("#playback").addEventListener("click", function() {
+      app.motions.record.update(0);
+      app.motions.playback.update(0, 1);
+    });
+
+    document.querySelector("#record").addEventListener("click", function() {
+      app.motions.record.update(1);
+      app.motions.playback.update(0, 1);
+    });
+
+    document.querySelector("#clearall").addEventListener("click", function() {
+      if (confirm("Clear everything?")) {
+        app.dc.clear(app.sessionid);
+      }
+    })
+  </script>
+</body>
+</html>
