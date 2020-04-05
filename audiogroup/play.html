@@ -22,7 +22,9 @@
 </head>
 <body>
 
-  <span class="muteall"><input type="checkbox"/>Mute all</spn>
+  <input type="text" id="sessionid" value="yoursession">
+  <span class="muteall"><input type="checkbox"/>Mute all</span>
+  <br>
   <button id="stop">Stop</button>
   <button id="record">Record</button>
   <button id="playback">Playback</button>
@@ -46,6 +48,8 @@
   <audio id="a2" src="0_1585762296.012153" controls></audio>
 -->
   <script>
+    if (localStorage._sessionid_)
+      document.querySelector("#sessionid").value = localStorage._sessionid_;
 
     document.querySelector(".muteall input").addEventListener("change", function(e) {
       document.querySelectorAll("audio").forEach(function(elem) { elem.muted = e.srcElement.checked;});
@@ -53,7 +57,6 @@
     });
 
     var app = MCorp.app("8113568792798709392");
-    app.sessionid = "somesessionid"
 
     app.ready.then(function() {
       let syncs = {};
@@ -94,7 +97,18 @@
       app.sequencer = sequencer;  // Debug
       let dcannon = new DataCannon("wss://audio.mcorp.no/dc/audio", [sequencer]);
       dcannon.ready.then(function() {
-        dcannon.subscribe(app.sessionid);
+
+        document.querySelector("#sessionid").addEventListener("change", function(e) {
+          console.log("Sesssion ID changed");
+          if (localStorage._sessionid_) {
+            // First unsub
+            dcannon.unsubscribe(localStorage._sessionid_);
+          }
+          localStorage._sessionid_ = e.srcElement.value;
+          dcannon.subscribe(localStorage._sessionid_);
+        });
+        if (localStorage._sessionid_)
+          dcannon.subscribe(localStorage._sessionid_);
         // dcannon.post("test", {startts: 0, name: "foo", value: "bar", lat: 12.345, lon: 67.890});
       });
       app.dc = dcannon;
@@ -167,7 +181,7 @@
 
     document.querySelector("#record").addEventListener("click", function() {
       app.motions.record.update(1);
-      app.motions.playback.update(0, 1);
+      app.motions.playback.update(-1, 1);
     });
 
     document.querySelector("#clearall").addEventListener("click", function() {

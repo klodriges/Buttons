@@ -28,8 +28,18 @@
       app.sequencer = sequencer;  // Debug
       let dcannon = new DataCannon("wss://audio.mcorp.no/dc/audio", [sequencer]);
       dcannon.ready.then(function() {
-        dcannon.subscribe(app.sessionid);
-        // dcannon.post("test", {startts: 0, name: "foo", value: "bar", lat: 12.345, lon: 67.890});
+
+        document.querySelector("#sessionid").addEventListener("change", function(e) {
+          console.log("Sesssion ID changed");
+          if (localStorage._sessionid_) {
+            // First unsub
+            dcannon.unsubscribe(localStorage._sessionid_);
+          }
+          localStorage._sessionid_ = e.srcElement.value;
+          dcannon.subscribe(localStorage._sessionid_);
+        });
+        if (localStorage._sessionid_)
+          dcannon.subscribe(localStorage._sessionid_);
       });
       app.dc = dcannon;
 
@@ -214,7 +224,9 @@
         statusTimeout = setTimeout(function() {
           document.querySelector("#status").innerHTML = "Stopped";
           //set_record_btn_active(false);
-        }, 1000);
+          console.log("No data in a bit");  
+          API.disconnect();
+        }, 10000);
         setTimeout(upload, 0);
       };
 
@@ -234,6 +246,11 @@
         setTimeout(upload, 0);
       };
 
+      API.disconnect = function() {
+        ws.close();
+        ws = undefined;
+      };
+
       // Should be called when a new recording is being made
       API.reset = function() {
         if (ts_sent === true) { // we've transmitted video, send end of video
@@ -247,7 +264,7 @@
           }, 500); // Allow time for video shutdown to complete
         }
         ts_sent = false;
-      }; 
+      };
       connect();
 
       return API;
@@ -325,7 +342,7 @@
         // Repetitions is beats mod beats pr cycle
         let beat_nr = Math.floor(app.to_s.pos * (app.motions.bpm.pos / 60.));
         document.querySelector("#rep").innerHTML = Math.floor(beat_nr / app.bpc);
-        document.querySelector("#beat").innerHTML = Math.floor(beat_nr % app.motions.bpc.pos) + 1;
+        document.querySelector("#beat").innerHTML = Math.floor(beat_nr % app.bpc) + 1;
         //#rep
         requestAnimationFrame(draw_metronome);
       }
@@ -366,6 +383,7 @@
 <div id="status" class="status"></div>
 <div id="sent" class="sent"></div>
 
+<input type="text" id="sessionid" value="yoursession">
 <input type="text" id="name" value="Anonymous">
 <input type="checkbox" id="record"> Allow recordings
 
