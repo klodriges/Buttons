@@ -6,17 +6,36 @@
   <script src="https://mcorp.no/lib/mediasync.js"></script>
   <script text="javascript" src="https://webtiming.github.io/timingsrc/lib/timingsrc-v2.js"></script>
   <script src="js/datacannon.js"></script>
+  <script src="multiplayer.js"></script>
 
   <style>
     .player {
       width: 250px;
+      height: 250px;
       display: inline-block;
       margin: 10px;
+      position:relative;
     }
 
-    .player audio {
-      width: 100%;
+    .player img {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      z-index: 1;
     }
+    .player .name {
+      position: relative;
+      z-index: 10;
+    }
+    .player audio {
+      display: block;
+    }
+
+    .muted {
+      filter: grayscale(100%);
+      background: rgba(0,0,0,0.3);
+    }
+
   </style>
 
 </head>
@@ -38,6 +57,7 @@
   </div>
   <template id="template_player">
     <div class="player">
+      <img class="pic"/>
       <audio controls></audio>
       <div class="name"></div>
       <div class="timestamp"></div>
@@ -48,12 +68,17 @@
   <audio id="a2" src="0_1585762296.012153" controls></audio>
 -->
   <script>
+
+
     if (localStorage._sessionid_)
       document.querySelector("#sessionid").value = localStorage._sessionid_;
 
     document.querySelector(".muteall input").addEventListener("change", function(e) {
-      document.querySelectorAll("audio").forEach(function(elem) { elem.muted = e.srcElement.checked;});
-        console.log("MUTE");
+      if (e.srcElement.checked) {
+        app.multiplayer.muteAll() ;
+      } else {
+        app.multiplayer.unmuteAll();
+      }
     });
 
     var app = MCorp.app("8113568792798709392");
@@ -78,18 +103,10 @@
       });
 
       app.motions.record.on("change", function() {
-        console.log("Record change", this.pos);
-        for (let s in syncs) {
-          if (this.pos == 0) {  // Not recording
-            syncs[s].pause(false);
-            console.log("Pausing all");
-          } else {
-            syncs[s].pause(true);
-            document.querySelectorAll("audio").forEach(function(elem) {
-              elem.pause();
-            });
-            console.log("Unpausing all");
-          }
+        if (this.pos != 0 && !document.querySelector(".muteall input").checked) {
+          document.querySelector(".muteall input").click();
+        } else if (this.pos == 0 && document.querySelector(".muteall input").checked) {
+          document.querySelector(".muteall input").click();
         }
       });
 
@@ -114,45 +131,7 @@
       app.dc = dcannon;
 
       let target = document.querySelector(".players");
-      sequencer.on("change", function(evt) {
-        let item = evt.data;
-        console.log("Sequencer change", item);
-        let val = item.value;
-        if (item.name == "profile") {
-          // Create a player
-          let player = target.querySelector("#player" + evt.key);
-          if (!player) {
-            let temp = document.querySelector("#template_player");
-            var clone = temp.content.cloneNode(true);
-            player = clone.querySelector("div");
-            player.setAttribute("id", "player" + evt.key);
-            target.append(player);
-          }
-          if (!syncs[evt.key]) {
-            syncs[evt.key] = MCorp.mediaSync(player.querySelector("audio"), app.motions.playback, {skew: -val.offset});
-          } else {
-            syncs[evt.key].setSkew(-val.offset);
-          }
-          if (app.motions.record.pos == 0) {
-            player.querySelector("audio").src = val.url;
-          } else {
-            console.log("Show that we're recording");
-          } 
-          player.querySelector(".name").innerHTML = val.name;
-          player.querySelector(".timestamp").innerHTML = new Date(item.modified * 1000);
-        }
-      });
-
-      sequencer.on("remove", function(evt) {
-        let player = target.querySelector("#player" + evt.key);
-        if (player) {
-          player.parentElement.remove(player);
-        };
-        if (syncs[evt.key]) {
-          syncs[evt.key].stop();
-          delete syncs[evt.key];
-        }
-      })
+      app.multiplayer = multiPlayer(target, sequencer, {epoc: app.motions.epoc, record:app.motions.record});
 
       /*
       sync1 = MCorp.mediaSync(document.querySelector("#a1"), app.motions.playback, {skew:-1585762118.375907});
@@ -186,7 +165,7 @@
 
     document.querySelector("#clearall").addEventListener("click", function() {
       if (confirm("Clear everything?")) {
-        app.dc.clear(app.sessionid);
+        app.dc.clear(localStorage._sessionid_);
       }
     })
   </script>

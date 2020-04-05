@@ -6,8 +6,37 @@
   <script src="https://mcorp.no/lib/mcorp-2.0.js"></script>
   <script text="javascript" src="https://webtiming.github.io/timingsrc/lib/timingsrc-v2.js"></script>
   <script src="js/datacannon.js"></script>
+  <script src="multiplayer.js"></script>
+  <script src="https://mcorp.no/lib/mediasync.js"></script>
+  <style>
+    .player {
+      width: 250px;
+      height: 250px;
+      display: inline-block;
+      margin: 10px;
+      position:relative;
+    }
 
-
+    .player img {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      z-index: 1;
+    }
+    .player .name {
+      position: relative;
+      z-index: 10;
+    }
+    .player audio {
+      display: block;
+      position: relative;
+      z-index: 1000;
+    }
+    .muted {
+      filter: grayscale(100%);
+      background: rgba(0,0,0,0.3);
+    }
+  </style>
   <script>
 
     if (localStorage.vizid === undefined) {
@@ -23,9 +52,11 @@
     .then(function() {
       let SERVER = "wss://audio.mcorp.no/ar/";
 
+
       app.to_s.timingsrc = app.motions.playback;  // should be recording
       let sequencer = new TIMINGSRC.Sequencer(app.to_s);
       app.sequencer = sequencer;  // Debug
+      app.multiplayer = multiPlayer(document.querySelector(".players"), sequencer, {epoc: app.motions.epoc, record:app.motions.record});
       let dcannon = new DataCannon("wss://audio.mcorp.no/dc/audio", [sequencer]);
       dcannon.ready.then(function() {
 
@@ -45,6 +76,15 @@
 
       sequencer.on("change", function(item) {
         console.log("Sequencer change", item);
+      });
+
+      // auto-mute myself when we're recording
+      app.motions.record.on("change", function() {
+        if (this.pos != 0) {
+          app.multiplayer.mutePlayer(localStorage.vizid);
+        } else {
+          app.multiplayer.unmutePlayer(localStorage.vizid);          
+        }
       });
 
       var Uploader = function(url, onError) {
@@ -224,7 +264,7 @@
         statusTimeout = setTimeout(function() {
           document.querySelector("#status").innerHTML = "Stopped";
           //set_record_btn_active(false);
-          console.log("No data in a bit");  
+          console.log("No data in a bit");
           API.disconnect();
         }, 10000);
         setTimeout(upload, 0);
@@ -248,6 +288,7 @@
 
       API.disconnect = function() {
         ws.close();
+        ts_sent = false;
         ws = undefined;
       };
 
@@ -259,9 +300,7 @@
           var package = new ArrayBuffer(2);
           var dv = new DataView(package);
           dv.setUint16(0, 0xf4ff);
-          setTimeout(function() {
-            API.pushData(undefined, package);        
-          }, 500); // Allow time for video shutdown to complete
+          API.pushData(undefined, package);        
         }
         ts_sent = false;
       };
@@ -272,7 +311,9 @@
 
       app.stop_recording = function() {
         app.disabled = true;        
+        app.uploader.reset();
       }
+
       app.record = function() {
         app.disabled = false;
         navigator.mediaDevices.getUserMedia({audio: true})
@@ -290,7 +331,7 @@
             // If the record motion is running, we shold record!
             if (this.pos) {  // We currently trigger on record - let this be a button
               if (app.disabled) return;
-              app.uploader.reset();
+              app.startTime = 0;
               running = true;
               console.log("Recording!");
               mediaRecorder.start(100);
@@ -300,6 +341,9 @@
                 mediaRecorder.stop();
                 document.querySelector("#status").innerHTML = "Stopped";
               }
+              setTimeout(function() {
+                app.uploader.reset();                
+              }, 500);
             }
           });
 
@@ -318,20 +362,22 @@
               let url = "https://audio.mcorp.no/audio/" + parseInt(localStorage.vizid) + "_" + Math.floor(app.startTime);
               let profile = {
                 name: document.querySelector("#name").value,
+                pic: "https://audio.mcorp.no/tux/Tux Avatar (" + localStorage.vizid % 945 + ").png",
                 url: url,
                 offset: ts
               }
               console.log("My profile is now:", profile);
-              dcannon.post(app.sessionid, {
+              dcannon.post(localStorage._sessionid_, {
                 id: parseInt(localStorage.vizid),
                 startts: ts,
                 endts: 100000000,
+                epoc: app.motions.epoc.pos - 0.100 - app.calibrate,
                 name: "profile",
                 value: profile
               });
               app.uploader.pushData(app.startTime, e.data);
             } else {
-              app.uploader.pushData(app.motions.epoc.pos - 0.100 - app.calibrate, e.data);            
+              app.uploader.pushData(app.motions.epoc.pos - 0.100 - app.calibrate, e.data);           
             }
           };
         });
@@ -396,7 +442,19 @@
 
 </div>
 
+<div class="players"></div>
+  <template id="template_player">
+    <div class="player">
+      <img class="pic"/>
+      <audio controls></audio>
+      <div class="name"></div>
+      <div class="timestamp"></div>
+  </template>
 <script>
+
+  if (localStorage._sessionid_)
+    document.querySelector("#sessionid").value = localStorage._sessionid_;
+
   if (localStorage.nick) {
     document.querySelector("#name").value = localStorage.nick;
   };
