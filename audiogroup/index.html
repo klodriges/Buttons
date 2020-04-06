@@ -3,10 +3,11 @@
 <head>
   <title>AudioGroup</title>
 
-  <script src="https://mcorp.no/lib/mcorp-2.0.js"></script>
+  <script src="https://mcorp.no/lib/mcorp-2.0a.js"></script>
   <script text="javascript" src="https://webtiming.github.io/timingsrc/lib/timingsrc-v2.js"></script>
   <script src="js/datacannon.js"></script>
   <script src="multiplayer.js"></script>
+  <script src="app.js"></script>
   <script src="https://mcorp.no/lib/mediasync.js"></script>
   <style>
     .player {
@@ -39,22 +40,24 @@
   </style>
   <script>
 
+/*
     if (localStorage.vizid === undefined) {
       localStorage.vizid = (Math.random()*1000000000).toFixed(0);
       // Use this later!
     }
 
+
     var app = MCorp.app("8113568792798709392");
     app.sessionid = "somesessionid"
-    app.to_s = new TIMINGSRC.TimingObject();
-    app.to_beats = new TIMINGSRC.ScaleConverter(app.to_s, 120/60.);  // BPM
+    app.playback = new TIMINGSRC.TimingObject();
+    app.to_beats = new TIMINGSRC.ScaleConverter(app.playback, 120/60.);  // BPM
     app.ready
     .then(function() {
       let SERVER = "wss://audio.mcorp.no/ar/";
 
 
-      app.to_s.timingsrc = app.motions.playback;  // should be recording
-      let sequencer = new TIMINGSRC.Sequencer(app.to_s);
+      app.playback.timingsrc = app.motions.playback;  // should be recording
+      let sequencer = new TIMINGSRC.Sequencer(app.playback);
       app.sequencer = sequencer;  // Debug
       app.multiplayer = multiPlayer(document.querySelector(".players"), sequencer, {epoc: app.motions.epoc, record:app.motions.record});
       let dcannon = new DataCannon("wss://audio.mcorp.no/dc/audio", [sequencer]);
@@ -86,6 +89,82 @@
           app.multiplayer.unmutePlayer(localStorage.vizid);          
         }
       });
+
+
+      // Metronome
+      let draw_metronome = function() {
+        // Repetitions is beats mod beats pr cycle
+        let beat_nr = Math.floor(app.playback.pos * (app.motions.bpm.pos / 60.));
+        document.querySelector("#rep").innerHTML = Math.floor(beat_nr / app.bpc);
+        document.querySelector("#beat").innerHTML = Math.floor(beat_nr % app.bpc) + 1;
+        //#rep
+        requestAnimationFrame(draw_metronome);
+      }
+      requestAnimationFrame(draw_metronome);
+
+      // We also need a skip function to start before based on bpm - the 
+      // scale converter doesn't do dynamic changes
+      app.skip_to_beat = function(beat, vel) {
+        let pos = beat * app.motions.bpm.pos / 60.;
+        app.playback.update({velocity: vel, position: pos});
+      }
+
+      app.motions.bpm.on("change", function() {
+        document.querySelector("#bpm").innerHTML = this.pos;
+      });
+      app.motions.bpc.on("change", function() {
+        app.bpc = Math.floor(this.pos);
+        app.bpc2 = Math.round((this.pos - app.bpc) * 10);
+        document.querySelector("#bpc").innerHTML = app.bpc + "/" + app.bpc2;
+      });
+*/
+
+
+
+
+  </script>
+
+</head>
+<body>
+<div id="status" class="status"></div>
+<div id="sent" class="sent"></div>
+
+<input type="text" id="sessionid" value="yoursession">
+<input type="text" id="name" value="Anonymous">
+<input type="checkbox" id="record"> Allow recordings
+
+<div class="metronome">
+
+  <div id="rep"></div>
+  <div id="beat"></div>
+  <div><span id="bpm"></span> bpm</div>
+  <div><span id="bpc"></span></div>
+
+</div>
+
+<div class="players"></div>
+  <template id="template_player">
+    <div class="player">
+      <img class="pic"/>
+      <audio controls></audio>
+      <div class="name"></div>
+      <div class="timestamp"></div>
+  </template>
+<script>
+
+    create_app().then(function(app) {
+
+      let SERVER = "wss://audio.mcorp.no/ar/";
+
+      // auto-mute myself when we're recording
+      app.to_record.on("change", function() {
+        if (this.pos != 0) {
+          app.multiplayer.mutePlayer(localStorage.vizid);
+        } else {
+          app.multiplayer.unmutePlayer(localStorage.vizid);          
+        }
+      });
+
 
       var Uploader = function(url, onError) {
         var API = {};
@@ -194,7 +273,7 @@
 
         if (recordedChunks.length > 0) {
           if (!resetting && ts_sent === false) {
-            console.log("Sending TS message");
+            console.log("Sending TS message", recordedChunks[0][0]);
             ts_sent = true;
             // First data block, send the timestamp first
             var package = new ArrayBuffer(14);
@@ -327,7 +406,7 @@
           console.log("Stream is", stream);
           app.uploader = Uploader(SERVER);
           let running = false;
-          app.motions.record.on("change", function() {
+          app.to_record.on("change", function() {
             // If the record motion is running, we shold record!
             if (this.pos) {  // We currently trigger on record - let this be a button
               if (app.disabled) return;
@@ -356,8 +435,8 @@
             if (!app.startTime) {
               // We request 100ms of data, so date it back
               // If we rather use app.motions.epoc.pos here we'll save all files
-              let ts = app.to_s.pos - 0.100 - app.calibrate;
-              app.startTime = app.motions.epoc.pos - 0.100 - app.calibrate;
+              let ts = app.to_playback.pos - 0.100 - app.calibrate;
+              app.startTime = app.to_epoc.pos - 0.100 - app.calibrate;
               // We shold share this url within the group
               let url = "https://audio.mcorp.no/audio/" + parseInt(localStorage.vizid) + "_" + Math.floor(app.startTime);
               let profile = {
@@ -367,49 +446,21 @@
                 offset: ts
               }
               console.log("My profile is now:", profile);
-              dcannon.post(localStorage._sessionid_, {
+              app.dcannon.post(localStorage._sessionid_, {
                 id: parseInt(localStorage.vizid),
                 startts: ts,
                 endts: 100000000,
-                epoc: app.motions.epoc.pos - 0.100 - app.calibrate,
+                epoc: app.to_epoc.pos - 0.100 - app.calibrate,
                 name: "profile",
                 value: profile
               });
               app.uploader.pushData(app.startTime, e.data);
             } else {
-              app.uploader.pushData(app.motions.epoc.pos - 0.100 - app.calibrate, e.data);           
+              app.uploader.pushData(app.to_epoc.pos - 0.100 - app.calibrate, e.data);           
             }
           };
         });
       };
-
-      // Metronome
-      let draw_metronome = function() {
-        // Repetitions is beats mod beats pr cycle
-        let beat_nr = Math.floor(app.to_s.pos * (app.motions.bpm.pos / 60.));
-        document.querySelector("#rep").innerHTML = Math.floor(beat_nr / app.bpc);
-        document.querySelector("#beat").innerHTML = Math.floor(beat_nr % app.bpc) + 1;
-        //#rep
-        requestAnimationFrame(draw_metronome);
-      }
-      requestAnimationFrame(draw_metronome);
-
-      // We also need a skip function to start before based on bpm - the 
-      // scale converter doesn't do dynamic changes
-      app.skip_to_beat = function(beat, vel) {
-        let pos = beat * app.motions.bpm.pos / 60.;
-        app.to_s.update({velocity: vel, position: pos});
-      }
-
-      app.motions.bpm.on("change", function() {
-        document.querySelector("#bpm").innerHTML = this.pos;
-      });
-      app.motions.bpc.on("change", function() {
-        app.bpc = Math.floor(this.pos);
-        app.bpc2 = Math.round((this.pos - app.bpc) * 10);
-        document.querySelector("#bpc").innerHTML = app.bpc + "/" + app.bpc2;
-      });
-
 
       document.querySelector("#record").addEventListener("change", function(e) {
         if (e.srcElement.checked) {
@@ -419,41 +470,6 @@
         }
       });
     });
-
-
-
-  </script>
-
-</head>
-<body>
-<div id="status" class="status"></div>
-<div id="sent" class="sent"></div>
-
-<input type="text" id="sessionid" value="yoursession">
-<input type="text" id="name" value="Anonymous">
-<input type="checkbox" id="record"> Allow recordings
-
-<div class="metronome">
-
-  <div id="rep"></div>
-  <div id="beat"></div>
-  <div><span id="bpm"></span>bpm</div>
-  <div><span id="bpc"></span></span></div>
-
-</div>
-
-<div class="players"></div>
-  <template id="template_player">
-    <div class="player">
-      <img class="pic"/>
-      <audio controls></audio>
-      <div class="name"></div>
-      <div class="timestamp"></div>
-  </template>
-<script>
-
-  if (localStorage._sessionid_)
-    document.querySelector("#sessionid").value = localStorage._sessionid_;
 
   if (localStorage.nick) {
     document.querySelector("#name").value = localStorage.nick;
