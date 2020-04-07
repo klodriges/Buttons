@@ -74,13 +74,6 @@
       (function f() {
         create_app(true).then(function(app) {
           window.app = app;
-          app.to_record.on("change", function() {
-            if (this.pos != 0 && !document.querySelector(".muteall input").checked) {
-              document.querySelector(".muteall input").click();
-            } else if (this.pos == 0 && document.querySelector(".muteall input").checked) {
-              document.querySelector(".muteall input").click();
-            }
-          });
 
           document.querySelector(".muteall input").addEventListener("change", function(e) {
             if (e.srcElement.checked) {
