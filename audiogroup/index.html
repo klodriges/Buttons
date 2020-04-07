@@ -4,7 +4,7 @@
   <title>AudioGroup</title>
 
   <script src="https://mcorp.no/lib/mcorp-2.0a.js"></script>
-  <script text="javascript" src="https://webtiming.github.io/timingsrc/lib/timingsrc-v2.js"></script>
+  <script text="javascript" src="https://mcorp.no/lib/timingsrc-v2.js"></script>
   <script src="js/datacannon.js"></script>
   <script src="multiplayer.js"></script>
   <script src="app.js"></script>
@@ -157,6 +157,7 @@
       alert("Failed:", msg);
     })
     .then(function(app) {
+      if(!app) return;  // Why is this resolved on error?
       let SERVER = "wss://audio.mcorp.no/ar/";
 
       // auto-mute myself when we're recording

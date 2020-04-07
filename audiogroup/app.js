@@ -1,3 +1,24 @@
+
+
+let genID = function() {
+  let chars = [];
+  for (let i=65; i<90; i++) {
+    chars.push(String.fromCharCode(i));
+  }
+  for (let i=97; i<122; i++) {
+    chars.push(String.fromCharCode(i));
+  }
+  for (let i=0; i<9; i++) {
+    chars.push(String(i));
+  }
+  let code = "";
+  for (let i=0; i<7; i++) {
+    code += chars[Math.floor((Math.random() * chars.length))];
+  }
+  return code;
+}
+
+
 function create_app(isMaster) {
   return new Promise(function(resolve, reject) {
       if (localStorage._sessionid_)
@@ -55,8 +76,9 @@ function create_app(isMaster) {
         if (localStorage._sessionid_)
           app.dcannon.subscribe(localStorage._sessionid_);
 
-        if (isMaster)
+        if (isMaster) {
           resolve(app);
+        }
       });
 
       let target = document.querySelector(".players");
