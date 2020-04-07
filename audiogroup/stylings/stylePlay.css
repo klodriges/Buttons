@@ -1,0 +1,52 @@
+input[type=text] {
+  background-color: inherit;
+  border: 1px white solid;
+  border-style: hidden hidden solid hidden;
+  color: white;
+}
+
+input[type=text]:hover {
+  border: 4px white solid;
+  border-style: hidden hidden solid hidden;
+}
+
+input[type=text]:focus {
+  border: 3px white solid;
+  border-style: hidden hidden solid hidden;
+}
+
+#bpm,
+#bpc {
+  color: #FC8E0|0;
+}
+
+#bpmDiv,
+#bpcDiv,
+#bpc2 {
+  color: white;
+}
+
+#sesDiv {
+  position: absolute;
+  right: 0px;
+  top: 30px;
+  width: 50%;
+}
+
+#sessionid {
+  color: white;
+  font-size: 35px !important;
+  margin-top: 10px;
+}
+
+#generateNewId {
+  width: 100px;
+  height: 100px;
+  z-index: 201;
+  transition: 0.5s ease;
+}
+
+#generateNewId img {
+  width: 90px;
+  height: 90px;
+}

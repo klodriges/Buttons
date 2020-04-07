@@ -1,0 +1,294 @@
+html, body {
+  background: #303040;
+  color: white;
+  font-family: Comfortaa, cursive;
+  text-align: center;
+  overflow: hidden;
+  cursor: default;
+}
+
+input[type=text] {
+  border: 2px white solid;
+  text-align: right;
+  padding-right: 10px;
+  border-style: hidden hidden solid hidden;
+  border-radius: 3px;
+  transition: 0.5s ease;
+  background-color: rgb(30, 30, 40);
+  color: white;
+  outline: none;
+}
+
+input[type=text]:focus {
+  border: 5px white solid;
+  border-style: hidden hidden solid hidden;
+  border-radius: 3px;
+}
+
+input[type=checkbox] {
+  height: 30px;
+  width: 30px;
+  border: 2px white solid;
+  text-align: right;
+  padding-right: 10px;
+  border-style: hidden hidden solid hidden;
+  border-radius: 3px;
+  transition: 0.5s ease;
+  background: rgb(30, 30, 40);
+  color: white;
+  outline: none;
+}
+
+input[type=text]:focus {
+  border: 5px white solid;
+  border-style: hidden hidden solid hidden;
+  border-radius: 3px;
+}
+
+@media screen and (max-width: 900px) {
+  .header {
+    padding-top: 10px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+#ob {
+  border: 5px #FC8E00 solid;
+  border-style: solid solid hidden hidden;
+  position: absolute;
+  left: 50%;
+  background-color: #303040;
+  box-shadow: inset -3px 3px 3px black;
+}
+
+#logo {
+  position: absolute;
+  left: 30px;
+  top: 30px;
+  width: 350px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#metronome {
+  border: 5px #FC8E00 solid;
+  border-style: solid hidden hidden hidden;
+  font-size: 80px;
+  background-color: #101020;
+  box-shadow: inset -3px 3px 3px #303040;
+}
+
+#metronome2 {
+  width: 50%;
+  border: 5px #FC8E00 solid;
+  border-style: solid solid hidden hidden;
+  background-color: #101020;
+  box-shadow: inset -3px 3px 3px #303040;
+}
+
+#record {
+  margin-left: 10px;
+}
+
+#bpmDiv, #bpcDiv {
+  text-align: center;
+  padding: 5px;
+  font-size: 35px;
+  color: orange;
+}
+
+#checkDiv {
+  text-align: left;
+  z-index: 199;
+}
+
+#bpmDiv {
+  border: 0px #FC8E00 solid;
+  border-style: solid hidden hidden hidden;
+}
+
+#bpm, #bpc {
+  color: orange;
+}
+
+#sent, #status {
+  color: orange;
+  font-variant: small-caps;
+  font-size: 1.2em;
+  letter-spacing: 6px;
+  text-align: left;
+  font-family: sans-serif;
+  z-index: 10;
+}
+
+#visBeat {
+  background: linear-gradient(45deg, #D8A62F 5%, #FC8E00 100%);
+  width: 195px;
+  height: 130px;
+  padding-top: 65px;
+  border-radius: 97.5px;
+  text-align: center;
+  z-index: 0;
+  border: 2px #303040 solid;
+}
+
+#beat {
+  color: #303040;
+  width: 100%;
+  height: 100%;
+}
+
+#rep {
+  color: orange;
+}
+
+#nameDiv {
+  text-align: left;
+  z-index: 1;
+  color: orange;
+}
+
+#sesDiv {
+  text-align: left;
+  z-index: 201;
+  color: orange;
+}
+
+#sesDiv2 {
+  color: orange;
+  position: absolute;
+  top: 30px;
+  text-align: left;
+  width: 50%;
+  left: 50%;
+}
+
+#sessionDisplay {
+  color: white;
+}
+
+#showSec {
+  position: absolute;
+  right: 0px;
+  width: 30%;
+  height: 70px;
+  padding-top: 30px;
+  background-color: #303040;
+  border: 5px #FC8E00 solid;
+  border-style: hidden hidden solid solid;
+  transition: 0.75s ease;
+  font-size: 25px;
+  box-shadow: -3px 3px 3px #303040;
+  z-index: 15;
+}
+
+#showSec:hover {
+  width: 40%;
+  cursor: pointer;
+  border: 5px #FC8E00 solid;
+  border-style: hidden hidden solid solid;
+  background-color: rgb(60, 60, 70);
+}
+
+#players {
+  background: #303040;
+  z-index: 0;
+  border: 5px #FC8E00 solid;
+  border-style: solid hidden hidden solid;
+  box-shadow: -3px 0px 3px #303040;
+}
+
+#players2 {
+  background: #303040;
+  text-align: left;
+  border: 2.5px #FC8E00 solid;
+  border-style: solid hidden hidden hidden;
+  padding-top: 20px;
+  box-shadow: 0px -3px 3px black;
+}
+
+#setspeeds {
+  margin-top: 20px;
+}
+
+button {
+  background: #303040;
+  border: 2px orange solid;
+  border-radius: 3px;
+  color: orange;
+  font-size: 30px;
+  margin: 5px;
+  padding: 5px;
+  transition: 0.75s ease;
+}
+
+button:hover {
+  background: linear-gradient(45deg, #D8A62F 5%, #FC8E00 100%) !important;
+  color: #303040 !important;
+  cursor: pointer;
+}
+
+.player {
+  width: 150px;
+  height: 150px;
+  display: inline-block;
+  margin: 10px;
+  position: relative;
+  font-size: 20px;
+  font-family: Comfortaa, cursive;
+}
+
+.player:hover {
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.player img {
+  width: 150px;
+  height: 150px;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 1;
+}
+
+.player .name {
+  position: relative;
+  top: 180px;
+  z-index: 10;
+  text-align: center;
+}
+
+.player .timestamp {
+  position: relative;
+  top: 180px;
+  text-align: center;
+}
+
+.player audio {
+  display: none;
+  position: relative;
+  z-index: 1000;
+}
+
+.muted {
+  filter: grayscale(100%);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+#overlay {
+  width: 100%;
+  background-color: #050505;
+  opacity: 0.9;
+  text-align: center;
+  left: 0px;
+  top: 0px;
+  display: inline;
+  z-index: 200;
+}
+
+#join {
+  z-index: 201;
+}

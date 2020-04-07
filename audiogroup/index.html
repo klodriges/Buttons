@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>AudioGroup</title>
+  <link rel="stylesheet" href="stylings/style.css">
+  <link href="https://fonts.googleapis.com/css?family=Comfortaa&display=swap" rel="stylesheet">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="stylings/pretty.js"></script>
 
   <script src="https://mcorp.no/lib/mcorp-2.0a.js"></script>
   <script text="javascript" src="https://mcorp.no/lib/timingsrc-v2.js"></script>
@@ -10,37 +15,13 @@
   <script src="app.js"></script>
   <script src="https://mcorp.no/lib/mediasync.js"></script>
   <style>
-    .player {
-      width: 250px;
-      height: 250px;
-      display: inline-block;
-      margin: 10px;
-      position:relative;
-    }
-
-    .player img {
-      position: absolute;
-      top: 0px;
-      left: 0px;
-      z-index: 1;
-    }
-    .player .name {
-      position: relative;
-      z-index: 10;
-    }
-    .player audio {
-      display: block;
-      position: relative;
-      z-index: 1000;
-    }
     .muted {
       filter: grayscale(100%);
-      background: rgba(0,0,0,0.3);
+      background: rgba(0, 0, 0, 0.3);
     }
   </style>
   <script>
-
-/*
+    /*
     if (localStorage.vizid === undefined) {
       localStorage.vizid = (Math.random()*1000000000).toFixed(0);
       // Use this later!
@@ -86,7 +67,7 @@
         if (this.pos != 0) {
           app.multiplayer.mutePlayer(localStorage.vizid);
         } else {
-          app.multiplayer.unmutePlayer(localStorage.vizid);          
+          app.multiplayer.unmutePlayer(localStorage.vizid);
         }
       });
 
@@ -102,7 +83,7 @@
       }
       requestAnimationFrame(draw_metronome);
 
-      // We also need a skip function to start before based on bpm - the 
+      // We also need a skip function to start before based on bpm - the
       // scale converter doesn't do dynamic changes
       app.skip_to_beat = function(beat, vel) {
         let pos = beat * app.motions.bpm.pos / 60.;
@@ -118,356 +99,382 @@
         document.querySelector("#bpc").innerHTML = app.bpc + "/" + app.bpc2;
       });
 */
-
-
-
-
   </script>
 
 </head>
+
 <body>
-<div id="status" class="status"></div>
-<div id="sent" class="sent"></div>
+  <div class="header">
+    <div id="logo"></div>
+  </div>
 
-<input type="text" id="sessionid" value="yoursession">
-<input type="text" id="name" value="Anonymous">
-<input type="checkbox" id="record"> Allow recordings
+  <div id="status" class="status"></div>
+  <div id="sent" class="sent"></div>
 
-<div class="metronome">
+  <div id="nameDiv">Nickname<br> <input type="text" id="name" class="name" value="Nickname..."></div>
+  <button id="checkDiv">Allow recordings</button>
 
-  <div id="rep"></div>
-  <div id="beat"></div>
-  <div><span id="bpm"></span> bpm</div>
-  <div><span id="bpc"></span></div>
+  <div id="overlay"></div>
+  <div id="sesDiv">Session id<br><input type="text" id="sessionid" class="name" value="Session id..."></div>
+  <button id="join">Join</button>
 
-</div>
+  <div id="metronome">
+    <div id="rep">0</div>
+    <div id="visBeat">
+      <div id="beat">1</div>
+    </div>
+    <div id="showSec">More info</div>
+  </div>
 
-<div class="players"></div>
-  <template id="template_player">
-    <div class="player">
-      <img class="pic"/>
-      <audio controls></audio>
-      <div class="name"></div>
-      <div class="timestamp"></div>
-  </template>
-<script>
+  <div id="bpmDiv">Bpm: <span id="bpm"></span></div>
+  <div id="bpcDiv">Takt: <span id="bpc"></span></span></div>
 
-    create_app()
-    .catch(function(msg) {
-      alert("Failed:", msg);
-    })
-    .then(function(app) {
-      if(!app) return;  // Why is this resolved on error?
-      let SERVER = "wss://audio.mcorp.no/ar/";
+  <div id="players" class="players">
+    Participants: (click to mute)
+    <br>
+    <template id="template_player">
+      <div class="player">
+        <img class="pic">
+        <audio controls></audio>
+        <div class="name"></div>
+        <div class="timestamp"></div>
+    </template>
+  </div>
 
-      // auto-mute myself when we're recording
-      app.to_record.on("change", function() {
-        if (this.pos != 0) {
-          app.multiplayer.mutePlayer(localStorage.vizid);
-        } else {
-          app.multiplayer.unmutePlayer(localStorage.vizid);          
-        }
-      });
+  <script>
+    var rec = false;
+    document.querySelector("#join").addEventListener("click", function() {
+      create_app()
+        .catch(function(msg) {
+          alert("Failed:", msg);
+          $("#sessionid").css("border", "3px red solid");
+          $("#sessionid").css("border-style", "hidden hidden solid hidden");
+        })
+        .then(function(app) {
+          if (!app) return;
+          session = true;
+          prettify();
+          let SERVER = "wss://audio.mcorp.no/ar/";
 
-
-      var Uploader = function(url, onError) {
-        var API = {};
-        var ws;
-        var ts_sent = false;
-        var resetting = false;
-        var total_sent = 0;
-        var recordedChunks = [];
-        var metaChunks = [];
-        var images = [];
-        var statusTimeout;
-
-        var connect = function() {
-          if (ws) {
-            //try {
-              ws.close();
-            //} catch (e) {
-            //}
-          }
-
-          try {
-            ws = new WebSocket(url);
-            window.ws = ws;
-            ws.binaryType = 'arraybuffer';
-            console.log("Opening websocket");
-            ws.onopen = function(event) {
-              // Trigger metadata sending?        
-              console.log("WebSocket is open, ready to upload data");
-              API.reset();
-              document.querySelector("#status").innerHTML = "Idle";
-              //set_record_btn_active(false);
-              upload();
-            };
-
-            ws.onerror = function(event) {
-              console.log("ERROR", event);
-              ws.close();
-              if (onError) {
-                try {
-                  onError();
-                } catch (err) {
-                  console.log("Error reporting error", err);
-                }
-              }
-            };
-            ws.onclose = function() {
-              console.log("CLOSED");
-              ws = undefined;
-            };
-
-          } catch (e) {
-            console.log("Error connecting to server:", e);
-            ws = undefined;
-          }
-        };
-
-      var _send = function(data) {
-        try {
-          ws.send(data);
-        } catch (err) {
-          console.log("Error sending data");
-          ws.onerror(err);
-        }
-      };
-      var upload = function() {
-        if (ws === undefined) {
-          console.log("Upload requested, but not connected", window.ws);
-          connect();
-          return;
-        }
-
-        // Check ws state
-        if (ws.readyState > 1) {
-          connect();
-          return;
-        }
-        if (ws.readyState == 0) {
-          console.log("WS still connecting");
-          return;
-        }
-
-        var dv;
-        if (metaChunks.length > 0) {
-          console.log("Have metachunk");
-          // Meta-package
-          var data = metaChunks.shift();
-
-          var pkg = new ArrayBuffer(50);
-          dv = new DataView(pkg);
-          dv.setUint16(0, 0xf4db);
-          dv.setUint32(2, parseInt(localStorage.vizid));
-          dv.setFloat64(6, data.ts);
-
-          if (data.position) {
-            dv.setFloat64(14, data.position.coords.latitude);
-            dv.setFloat64(22, data.position.coords.longitude);
-            dv.setUint16(30, data.position.coords.altitude);
-            dv.setUint16(32, data.position.coords.accuracy);            
-          }
-
-          dv.setFloat64(34, data.heading || 0);  // heading (0 degrees is north, 180 is south)
-          dv.setFloat64(42, data.pitch || 0);  // pitch (0 degrees is flat, 180 is up)
-          _send(pkg);
-          setTimeout(upload, 0);
-        }
-
-        if (recordedChunks.length > 0) {
-          if (!resetting && ts_sent === false) {
-            console.log("Sending TS message", recordedChunks[0][0]);
-            ts_sent = true;
-            // First data block, send the timestamp first
-            var package = new ArrayBuffer(14);
-            dv = new DataView(package);
-            dv.setUint16(0, 0xf4de);
-            dv.setUint32(2, parseInt(localStorage.vizid));
-            dv.setFloat64(6, recordedChunks[0][0]);
-            _send(package); //new Blob([dv]));
-          }
-          var chunk = recordedChunks.shift();
-          if (chunk[0] === undefined) {
-            clearTimeout(statusTimeout);
-            document.querySelector("#status").innerHTML = "Idle";
-            // set_record_btn_active(false);
-
-            // Message already prepared (is likely END), just send it
-            ws.send(chunk[1]);
-            resetting = false;
-          } else {
-            var filereader = new FileReader();
-            filereader.onload = function() {
-              total_sent += this.result.byteLength;
-              document.querySelector("#sent").innerHTML = (total_sent / 1024).toFixed(0);
-              ws.send(this.result);
-              setTimeout(upload, 0);          
-            };
-            filereader.readAsArrayBuffer(chunk[1]);
-          }
-        }
-
-        if (images.length > 0) {
-          console.log("Will send image");
-          var data = images.shift();
-          var byteString = atob(data.image.split(',')[1]);
-          var pkg = new ArrayBuffer(byteString.length + 14);
-          dv = new DataView(pkg);
-          dv.setUint16(0, 0xfbd);
-          dv.setUint32(2, parseInt(localStorage.vizid));
-          dv.setFloat64(6, data.ts);
-          for (var j=0; j < byteString.length; j++) {
-            dv.setInt8(j + 14, byteString.charCodeAt(j));
-          }
-          _send(pkg);
-          console.log("Image sent");
-        }
-      };
-      var sendMeta = function(data) {
-        if (!ws) {
-          console.log("Skipping metadata, no connection");
-        }
-      };
-
-      API.pushData = function(ts, data) {
-        if (data === undefined) {
-          throw new Error("Need data to send");      
-        }
-        recordedChunks.push([ts, data]);
-        var status = "Recording";
-        if (recordedChunks.length > 4) {
-          status = "NETWORK TOO SLOW";
-        } else if (recordedChunks.length > 2) {
-          status = "Network seems a bit slow";
-        }
-        clearTimeout(statusTimeout);
-        document.querySelector("#status").innerHTML = status;
-        //set_record_btn_active(true);
-        statusTimeout = setTimeout(function() {
-          document.querySelector("#status").innerHTML = "Stopped";
-          //set_record_btn_active(false);
-          console.log("No data in a bit");
-          API.disconnect();
-        }, 10000);
-        setTimeout(upload, 0);
-      };
-
-      API.pushMeta = function(ts, position, heading, pitch) {
-        var meta = {
-          ts: ts,
-          position: position,
-          heading: heading,
-          pitch: pitch
-        };
-        metaChunks.push(meta);
-        setTimeout(upload, 0);
-      };
-
-      API.pushImage = function(ts, image) {
-        images.push({ts: ts, image: image});
-        setTimeout(upload, 0);
-      };
-
-      API.disconnect = function() {
-        ws.close();
-        ts_sent = false;
-        ws = undefined;
-      };
-
-      // Should be called when a new recording is being made
-      API.reset = function() {
-        if (ts_sent === true) { // we've transmitted video, send end of video
-          resetting = true;
-          console.log("Sending END");
-          var package = new ArrayBuffer(2);
-          var dv = new DataView(package);
-          dv.setUint16(0, 0xf4ff);
-          API.pushData(undefined, package);        
-        }
-        ts_sent = false;
-      };
-      connect();
-
-      return API;
-      };
-
-      app.stop_recording = function() {
-        app.disabled = true;        
-        app.uploader.reset();
-      }
-
-      app.record = function() {
-        app.disabled = false;
-        navigator.mediaDevices.getUserMedia({audio: true})
-        .then(function(stream) {
-          app.calibrate = 0.100;
-          let options = {
-            mimeType: 'audio/ogg; codecs=opus'
-          };
-          var mediaRecorder = new MediaRecorder(stream);
-          window.mr = mediaRecorder;
-          console.log("Stream is", stream);
-          app.uploader = Uploader(SERVER);
-          let running = false;
+          // auto-mute myself when we're recording
           app.to_record.on("change", function() {
-            // If the record motion is running, we shold record!
-            if (this.pos) {  // We currently trigger on record - let this be a button
-              if (app.disabled) return;
-              app.startTime = 0;
-              running = true;
-              console.log("Recording!");
-              mediaRecorder.start(100);
+            if (this.pos != 0) {
+              app.multiplayer.mutePlayer(localStorage.vizid);
             } else {
-              // Done
-              if (running && mediaRecorder.state == "recording") {
-                mediaRecorder.stop();
-                document.querySelector("#status").innerHTML = "Stopped";
-              }
-              setTimeout(function() {
-                app.uploader.reset();                
-              }, 500);
+              app.multiplayer.unmutePlayer(localStorage.vizid);
             }
           });
 
-          mediaRecorder.ondataavailable = function(e) {
-            if (app.disabled && mediaRecorder.state == "recording") {
-              mediaRecorder.stop();
-              document.querySelector("#status").innerHTML = "Stopped";
-              return;
-            }
-            if (!app.startTime) {
-              // We request 100ms of data, so date it back
-              // If we rather use app.motions.epoc.pos here we'll save all files
-              let ts = app.to_playback.pos - 0.100 - app.calibrate;
-              app.startTime = app.to_epoc.pos - 0.100 - app.calibrate;
-              // We shold share this url within the group
-              let url = "https://audio.mcorp.no/audio/" + parseInt(localStorage.vizid) + "_" + Math.floor(app.startTime);
-              let profile = {
-                name: document.querySelector("#name").value,
-                pic: "https://audio.mcorp.no/tux/Tux Avatar (" + localStorage.vizid % 945 + ").png",
-                url: url,
-                offset: ts
+
+          var Uploader = function(url, onError) {
+            var API = {};
+            var ws;
+            var ts_sent = false;
+            var resetting = false;
+            var total_sent = 0;
+            var recordedChunks = [];
+            var metaChunks = [];
+            var images = [];
+            var statusTimeout;
+
+            var connect = function() {
+              if (ws) {
+                //try {
+                ws.close();
+                //} catch (e) {
+                //}
               }
-              console.log("My profile is now:", profile);
-              app.dcannon.post(localStorage._sessionid_, {
-                id: parseInt(localStorage.vizid),
-                startts: ts,
-                endts: 100000000,
-                epoc: app.to_epoc.pos - 0.100 - app.calibrate,
-                name: "profile",
-                value: profile
+
+              try {
+                ws = new WebSocket(url);
+                window.ws = ws;
+                ws.binaryType = 'arraybuffer';
+                console.log("Opening websocket");
+                ws.onopen = function(event) {
+                  // Trigger metadata sending?
+                  console.log("WebSocket is open, ready to upload data");
+                  API.reset();
+                  document.querySelector("#status").innerHTML = "Idle";
+                  //set_record_btn_active(false);
+                  upload();
+                };
+
+                ws.onerror = function(event) {
+                  console.log("ERROR", event);
+                  ws.close();
+                  if (onError) {
+                    try {
+                      onError();
+                    } catch (err) {
+                      console.log("Error reporting error", err);
+                    }
+                  }
+                };
+                ws.onclose = function() {
+                  console.log("CLOSED");
+                  ws = undefined;
+                };
+
+              } catch (e) {
+                console.log("Error connecting to server:", e);
+                ws = undefined;
+              }
+            };
+
+            var _send = function(data) {
+              try {
+                ws.send(data);
+              } catch (err) {
+                console.log("Error sending data");
+                ws.onerror(err);
+              }
+            };
+            var upload = function() {
+              if (ws === undefined) {
+                console.log("Upload requested, but not connected", window.ws);
+                connect();
+                return;
+              }
+
+              // Check ws state
+              if (ws.readyState > 1) {
+                connect();
+                return;
+              }
+              if (ws.readyState == 0) {
+                console.log("WS still connecting");
+                return;
+              }
+
+              var dv;
+              if (metaChunks.length > 0) {
+                console.log("Have metachunk");
+                // Meta-package
+                var data = metaChunks.shift();
+
+                var pkg = new ArrayBuffer(50);
+                dv = new DataView(pkg);
+                dv.setUint16(0, 0xf4db);
+                dv.setUint32(2, parseInt(localStorage.vizid));
+                dv.setFloat64(6, data.ts);
+
+                if (data.position) {
+                  dv.setFloat64(14, data.position.coords.latitude);
+                  dv.setFloat64(22, data.position.coords.longitude);
+                  dv.setUint16(30, data.position.coords.altitude);
+                  dv.setUint16(32, data.position.coords.accuracy);
+                }
+
+                dv.setFloat64(34, data.heading || 0); // heading (0 degrees is north, 180 is south)
+                dv.setFloat64(42, data.pitch || 0); // pitch (0 degrees is flat, 180 is up)
+                _send(pkg);
+                setTimeout(upload, 0);
+              }
+
+              if (recordedChunks.length > 0) {
+                if (!resetting && ts_sent === false) {
+                  console.log("Sending TS message", recordedChunks[0][0]);
+                  ts_sent = true;
+                  // First data block, send the timestamp first
+                  var package = new ArrayBuffer(14);
+                  dv = new DataView(package);
+                  dv.setUint16(0, 0xf4de);
+                  dv.setUint32(2, parseInt(localStorage.vizid));
+                  dv.setFloat64(6, recordedChunks[0][0]);
+                  _send(package); //new Blob([dv]));
+                }
+                var chunk = recordedChunks.shift();
+                if (chunk[0] === undefined) {
+                  clearTimeout(statusTimeout);
+                  document.querySelector("#status").innerHTML = "Idle";
+                  // set_record_btn_active(false);
+
+                  // Message already prepared (is likely END), just send it
+                  ws.send(chunk[1]);
+                  resetting = false;
+                } else {
+                  var filereader = new FileReader();
+                  filereader.onload = function() {
+                    total_sent += this.result.byteLength;
+                    document.querySelector("#sent").innerHTML = (total_sent / 1024).toFixed(0);
+                    ws.send(this.result);
+                    setTimeout(upload, 0);
+                  };
+                  filereader.readAsArrayBuffer(chunk[1]);
+                }
+              }
+
+              if (images.length > 0) {
+                console.log("Will send image");
+                var data = images.shift();
+                var byteString = atob(data.image.split(',')[1]);
+                var pkg = new ArrayBuffer(byteString.length + 14);
+                dv = new DataView(pkg);
+                dv.setUint16(0, 0xfbd);
+                dv.setUint32(2, parseInt(localStorage.vizid));
+                dv.setFloat64(6, data.ts);
+                for (var j = 0; j < byteString.length; j++) {
+                  dv.setInt8(j + 14, byteString.charCodeAt(j));
+                }
+                _send(pkg);
+                console.log("Image sent");
+              }
+            };
+            var sendMeta = function(data) {
+              if (!ws) {
+                console.log("Skipping metadata, no connection");
+              }
+            };
+
+            API.pushData = function(ts, data) {
+              if (data === undefined) {
+                throw new Error("Need data to send");
+              }
+              recordedChunks.push([ts, data]);
+              var status = "Recording";
+              if (recordedChunks.length > 4) {
+                status = "NETWORK TOO SLOW";
+              } else if (recordedChunks.length > 2) {
+                status = "Network seems a bit slow";
+              }
+              clearTimeout(statusTimeout);
+              document.querySelector("#status").innerHTML = status;
+              //set_record_btn_active(true);
+              statusTimeout = setTimeout(function() {
+                document.querySelector("#status").innerHTML = "Stopped";
+                //set_record_btn_active(false);
+                console.log("No data in a bit");
+                API.disconnect();
+              }, 10000);
+              setTimeout(upload, 0);
+            };
+
+            API.pushMeta = function(ts, position, heading, pitch) {
+              var meta = {
+                ts: ts,
+                position: position,
+                heading: heading,
+                pitch: pitch
+              };
+              metaChunks.push(meta);
+              setTimeout(upload, 0);
+            };
+
+            API.pushImage = function(ts, image) {
+              images.push({
+                ts: ts,
+                image: image
               });
-              app.uploader.pushData(app.startTime, e.data);
-            } else {
-              app.uploader.pushData(app.to_epoc.pos - 0.100 - app.calibrate, e.data);           
-            }
+              setTimeout(upload, 0);
+            };
+
+            API.disconnect = function() {
+              ws.close();
+              ts_sent = false;
+              ws = undefined;
+            };
+
+            // Should be called when a new recording is being made
+            API.reset = function() {
+              if (ts_sent === true) { // we've transmitted video, send end of video
+                resetting = true;
+                console.log("Sending END");
+                var package = new ArrayBuffer(2);
+                var dv = new DataView(package);
+                dv.setUint16(0, 0xf4ff);
+                API.pushData(undefined, package);
+              }
+              ts_sent = false;
+            };
+            connect();
+
+            return API;
+          };
+
+          app.stop_recording = function() {
+            app.disabled = true;
+            app.uploader.reset();
+          }
+
+          app.record = function() {
+            app.disabled = false;
+            navigator.mediaDevices.getUserMedia({
+                audio: true
+              })
+              .then(function(stream) {
+                app.calibrate = 0.100;
+                let options = {
+                  mimeType: 'audio/ogg; codecs=opus'
+                };
+                var mediaRecorder = new MediaRecorder(stream);
+                window.mr = mediaRecorder;
+                console.log("Stream is", stream);
+                app.uploader = Uploader(SERVER);
+                let running = false;
+                app.to_record.on("change", function() {
+                  // If the record motion is running, we shold record!
+                  if (this.pos) { // We currently trigger on record - let this be a button
+                    if (app.disabled) return;
+                    app.startTime = 0;
+                    running = true;
+                    console.log("Recording!");
+                    mediaRecorder.start(100);
+                  } else {
+                    // Done
+                    if (running && mediaRecorder.state == "recording") {
+                      mediaRecorder.stop();
+                      document.querySelector("#status").innerHTML = "Stopped";
+                    }
+                    setTimeout(function() {
+                      app.uploader.reset();
+                    }, 500);
+                  }
+                });
+
+                mediaRecorder.ondataavailable = function(e) {
+                  if (app.disabled && mediaRecorder.state == "recording") {
+                    mediaRecorder.stop();
+                    document.querySelector("#status").innerHTML = "Stopped";
+                    return;
+                  }
+                  if (!app.startTime) {
+                    // We request 100ms of data, so date it back
+                    // If we rather use app.motions.epoc.pos here we'll save all files
+                    let ts = app.to_playback.pos - 0.100 - app.calibrate;
+                    app.startTime = app.to_epoc.pos - 0.100 - app.calibrate;
+                    // We shold share this url within the group
+                    let url = "https://audio.mcorp.no/audio/" + parseInt(localStorage.vizid) + "_" + Math.floor(app.startTime);
+                    let profile = {
+                      name: document.querySelector("#name").value,
+                      pic: "https://audio.mcorp.no/tux/Tux Avatar (" + localStorage.vizid % 945 + ").png",
+                      url: url,
+                      offset: ts
+                    }
+                    console.log("My profile is now:", profile);
+                    app.dcannon.post(localStorage._sessionid_, {
+                      id: parseInt(localStorage.vizid),
+                      startts: ts,
+                      endts: 100000000,
+                      epoc: app.to_epoc.pos - 0.100 - app.calibrate,
+                      name: "profile",
+                      value: profile
+                    });
+                    app.uploader.pushData(app.startTime, e.data);
+                  } else {
+                    app.uploader.pushData(app.to_epoc.pos - 0.100 - app.calibrate, e.data);
+                  }
+                };
+              });
           };
         });
-      };
-
-      document.querySelector("#record").addEventListener("change", function(e) {
-        if (e.srcElement.checked) {
+      document.querySelector("#checkDiv").addEventListener("click", function(e) {
+        if (rec) {
+          rec = false;
+        } else {
+          rec = true;
+        }
+        prettify();
+        if (rec) {
           app.record();
         } else {
           app.stop_recording();
@@ -475,13 +482,14 @@
       });
     });
 
-  if (localStorage.nick) {
-    document.querySelector("#name").value = localStorage.nick;
-  };
-  document.querySelector("#name").addEventListener("change", function(e) {
-    console.log("Name changed", e.srcElement.value);
-    localStorage.nick = e.srcElement.value;
-  });
-</script>
+    if (localStorage.nick) {
+      document.querySelector("#name").value = localStorage.nick;
+    };
+    document.querySelector("#name").addEventListener("change", function(e) {
+      console.log("Name changed", e.srcElement.value);
+      localStorage.nick = e.srcElement.value;
+    });
+  </script>
 </body>
+
 </html>

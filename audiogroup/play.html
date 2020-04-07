@@ -1,141 +1,153 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title></title>
+  <link rel="stylesheet" href="stylings/style.css">
+  <link rel="stylesheet" href="stylings/stylePlay.css">
+  <link href="https://fonts.googleapis.com/css?family=Comfortaa&display=swap" rel="stylesheet">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="stylings/prettyPlay.js"></script>
+
   <script src="https://mcorp.no/lib/mcorp-2.0a.js"></script>
   <script src="https://mcorp.no/lib/mediasync.js"></script>
   <script text="javascript" src="https://mcorp.no/lib/timingsrc-v2.js"></script>
   <script src="js/datacannon.js"></script>
   <script src="multiplayer.js"></script>
   <script src="app.js"></script>
-
-  <style>
-    .player {
-      width: 250px;
-      height: 250px;
-      display: inline-block;
-      margin: 10px;
-      position:relative;
-    }
-
-    .player img {
-      position: absolute;
-      top: 0px;
-      left: 0px;
-      z-index: 1;
-    }
-    .player .name {
-      position: relative;
-      z-index: 10;
-    }
-    .player audio {
-      display: block;
-    }
-
-    .muted {
-      filter: grayscale(100%);
-      background: rgba(0,0,0,0.3);
-    }
-
-  </style>
-
 </head>
+
 <body>
-
-  <input type="text" id="sessionid" value="yoursession">
-  <span class="muteall"><input type="checkbox"/>Mute all</span>
-  <br>
-  <button id="stop">Stop</button>
-  <button id="record">Record</button>
-  <button id="playback">Playback</button>
-  <button id="clearall">Clear all</button>
-  <br>
-  <input type="text" id="bpc" value="4" size=1>/<input type="text" id="bpc2" value="4" size=1>
-  <input type="text" id="bpm" value="120" size=4>Beats pr minute
-  <button id="setspeeds">Set speeds</button>
-
-<div class="metronome">
-
-  <div id="rep"></div>
-  <div id="beat"></div>
-  <div><span id="bpm"></span> bpm</div>
-  <div><span id="bpc"></span></div>
-
-</div>
-
-  <div class="players">
+  <div class="header">
+    <div id="logo"></div>
   </div>
-  <template id="template_player">
-    <div class="player">
-      <img class="pic"/>
-      <audio controls></audio>
-      <div class="name"></div>
-      <div class="timestamp"></div>
-  </template>
 
-<!--
+  <div id="ob"></div>
+  <div id="metronome2">
+    <div id="rep">0</div>
+    <div id="visBeat">
+      <div id="beat">1</div>
+    </div>
+  </div>
+  <div id="players2" class="players">
+    Participants: (click to mute)
+    <br>
+    <template id="template_player">
+      <div class="player">
+        <img class="pic">
+        <audio controls></audio>
+        <div class="name"></div>
+        <div class="timestamp"></div>
+    </template>
+  </div>
+
+  <div id="overlay"></div>
+  <div id="sesDiv">Session id<br>
+    <div id="sessionid" class="name ses2">Session id...</div>
+  </div>
+  <button id="generateNewId" title="Generate new id"><img id="newImg" onMouseOver="changeImg()" onMouseOut="fixImg()" src="refreshO.png" alt="new id"></button>
+  <button id="join">Host</button>
+
+  <div id="sesDiv2">Session id:<br>
+    <div id="sessionDisplay"></div>
+  </div>
+
+  <div id="muteDiv"><span class="muteall"><input type="checkbox" />Mute all</span></div>
+  <div id="buttons">
+    <button id="stop">Stop</button>
+    <button id="record">Record</button>
+    <button id="playback">Playback</button>
+    <button id="clearall">Clear all</button>
+  </div>
+
+  <div id="bpmDiv">Bpm: <input type="text" id="bpm" value="120" size=4></div>
+  <div id="bpcDiv">Takt: <input type="text" id="bpc" value="4" size=1>/<input type="text" id="bpc2" value="4" size=1>
+    <button id="setspeeds">Set speeds</button>
+  </div>
+
+  <!--
   <audio id="a1" src="0_1585762118.375907" controls></audio>
   <audio id="a2" src="0_1585762296.012153" controls></audio>
 -->
   <script>
+    $("#join").click(function() {
+      (function f() {
+        create_app(true).then(function(app) {
+          window.app = app;
+          app.to_record.on("change", function() {
+            if (this.pos != 0 && !document.querySelector(".muteall input").checked) {
+              document.querySelector(".muteall input").click();
+            } else if (this.pos == 0 && document.querySelector(".muteall input").checked) {
+              document.querySelector(".muteall input").click();
+            }
+          });
 
-    (function f() {
-
-      create_app(true).then(function(app) {
-        window.app = app;
-        app.to_record.on("change", function() {
-          if (this.pos != 0 && !document.querySelector(".muteall input").checked) {
-            document.querySelector(".muteall input").click();
-          } else if (this.pos == 0 && document.querySelector(".muteall input").checked) {
-            document.querySelector(".muteall input").click();
-          }
-        });
-
-        document.querySelector(".muteall input").addEventListener("change", function(e) {
-          if (e.srcElement.checked) {
-            app.multiplayer.muteAll() ;
-          } else {
-            app.multiplayer.unmuteAll();
-          }
-        });
-        document.querySelector("#setspeeds").addEventListener("click", function(e) {
-          app.to_bpm.update({position: parseInt(document.querySelector("#bpm").value)});
-          let bpc = document.querySelector("#bpc");
-          let bpc2 = document.querySelector("#bpc2")
-          console.log("update", parseInt(bpc.value) + (parseInt(bpc2.value) / 10.));
-          app.to_bpc.update({position: parseInt(bpc.value) + (parseInt(bpc2.value) / 10.)});
-        });
-
-        document.querySelector("#stop").addEventListener("click", function() {
-          app.to_record.update({position: 0});
-          app.to_playback.update({position: 0, velocity: 0});
-        });
-
-        document.querySelector("#playback").addEventListener("click", function() {
-          app.to_record.update({position: 0});
-          app.to_playback.update({position: 0, velocity: 1});
-        });
-
-        document.querySelector("#record").addEventListener("click", function() {
-          app.to_record.update({position: 1});
-          app.to_playback.update({position: 0, velocity: 1});
-        });
-
-        document.querySelector("#clearall").addEventListener("click", function() {
-          if (confirm("Clear everything?")) {
-            // TODO: Need to keep the session - remove all vids one by one or re-add session
-            app.sequencer.getCues().forEach(function(cue) {
-              if (cue.data.key != "session") {
-                console.log("Remove cue", cue.data.id);
-                app.dcannon.remove(localStorage._sessionid_, cue.data.id);
-              }
+          document.querySelector(".muteall input").addEventListener("change", function(e) {
+            if (e.srcElement.checked) {
+              app.multiplayer.muteAll();
+            } else {
+              app.multiplayer.unmuteAll();
+            }
+          });
+          document.querySelector("#setspeeds").addEventListener("click", function(e) {
+            app.to_bpm.update({
+              position: parseInt(document.querySelector("#bpm").value)
             });
+            let bpc = document.querySelector("#bpc");
+            let bpc2 = document.querySelector("#bpc2")
+            console.log("update", parseInt(bpc.value) + (parseInt(bpc2.value) / 10.));
+            app.to_bpc.update({
+              position: parseInt(bpc.value) + (parseInt(bpc2.value) / 10.)
+            });
+          });
 
-            // app.dcannon.clear(localStorage._sessionid_);
-          }
+          document.querySelector("#stop").addEventListener("click", function() {
+            app.to_record.update({
+              position: 0
+            });
+            app.to_playback.update({
+              position: 0,
+              velocity: 0
+            });
+          });
+
+          document.querySelector("#playback").addEventListener("click", function() {
+            app.to_record.update({
+              position: 0
+            });
+            app.to_playback.update({
+              position: 0,
+              velocity: 1
+            });
+          });
+
+          document.querySelector("#record").addEventListener("click", function() {
+            app.to_record.update({
+              position: 1
+            });
+            app.to_playback.update({
+              position: 0,
+              velocity: 1
+            });
+          });
+
+          document.querySelector("#clearall").addEventListener("click", function() {
+            if (confirm("Clear everything?")) {
+              // TODO: Need to keep the session - remove all vids one by one or re-add session
+              app.sequencer.getCues().forEach(function(cue) {
+                if (cue.data.key != "session") {
+                  console.log("Remove cue", cue.data.id);
+                  app.dcannon.remove(localStorage._sessionid_, cue.data.id);
+                }
+              });
+
+              // app.dcannon.clear(localStorage._sessionid_);
+            }
+          });
         });
-      });
-    }());
+      }());
+    });
   </script>
 </body>
+
 </html>
