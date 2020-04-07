@@ -152,8 +152,11 @@
   </template>
 <script>
 
-    create_app().then(function(app) {
-
+    create_app()
+    .catch(function(msg) {
+      alert("Failed:", msg);
+    })
+    .then(function(app) {
       let SERVER = "wss://audio.mcorp.no/ar/";
 
       // auto-mute myself when we're recording

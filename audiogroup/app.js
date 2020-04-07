@@ -1,6 +1,5 @@
 function create_app(isMaster) {
   return new Promise(function(resolve, reject) {
-
       if (localStorage._sessionid_)
         document.querySelector("#sessionid").value = localStorage._sessionid_;
 
@@ -18,14 +17,14 @@ function create_app(isMaster) {
       let join_timeout;
 
       app.updateSession = function() {
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject2) {
           let m = MCorp.app("8113568792798709392");
           m.ready.then(function() {
             m.getSession(function(res) {
-              console.log("Session posted")
               app.sid = res.sid;
               app.dcannon.post(localStorage._sessionid_, {id: "session", startts: 0, endts: 1000000000, name: "session", value: res.sid});
-              resolve(m);
+              console.log("Session posted for channel", localStorage._sessionid_);
+              resolve2(m);
             });
           });
         });
@@ -33,9 +32,15 @@ function create_app(isMaster) {
 
       app.dcannon.ready.then(function() {
         join_timeout = setTimeout(function() {
-          if (confirm("Session seems empty, create it?")) {
-            app.updateSession();
+          if (isMaster) {
+            if (confirm("Session seems empty, create it?")) {
+              app.updateSession();
+              return;
+            }
           }
+          // TODO: Figure this out
+          console.log("Failed, rejecting");
+          reject("Empty session, please check it");
         }, 3000);
 
         document.querySelector("#sessionid").addEventListener("change", function(e) {
@@ -50,7 +55,8 @@ function create_app(isMaster) {
         if (localStorage._sessionid_)
           app.dcannon.subscribe(localStorage._sessionid_);
 
-        resolve(app);
+        if (isMaster)
+          resolve(app);
       });
 
       let target = document.querySelector(".players");
@@ -101,6 +107,7 @@ function create_app(isMaster) {
         if (item.name == "session" && !app.mcorp) {
           clearTimeout(join_timeout);
           if (!isMaster) {
+            resolve(app);
             if (item.value == app.sid) return;
             app.sid = item.value;
             console.log("Got a SID, fixing mcorp app with session", item.value);
