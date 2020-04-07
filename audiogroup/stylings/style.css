@@ -231,8 +231,8 @@ button {
 }
 
 button:hover {
-  background: linear-gradient(45deg, #D8A62F 5%, #FC8E00 100%);
-  color: #303040;
+  background: linear-gradient(45deg, #D8A62F 5%, #FC8E00 100%) !important;
+  color: #303040 !important;
   cursor: pointer;
 }
 
