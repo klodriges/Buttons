@@ -30,13 +30,14 @@ function generateNewIdFunction(makeNew) {
   }
   document.querySelector(".ses2").innerHTML = sesid;
   document.querySelector("#sessionid").value = sesid;
+  localStorage._sessionid_ = sesid;
 }
 
 let genID = function() {
   let chars = [];
-  for (let i = 65; i < 90; i++) {
-    chars.push(String.fromCharCode(i));
-  }
+  // for (let i = 65; i < 90; i++) {
+  //   chars.push(String.fromCharCode(i));
+  // }
   for (let i = 97; i < 122; i++) {
     chars.push(String.fromCharCode(i));
   }
@@ -183,7 +184,9 @@ function create_app(isMaster) {
 
     app.to_record.on("change", function() {
       console.log("app.to_record changed");
-      recordButton();
+      if ($("#recordButton").length > 0) {
+        recordButton();
+      }
     });
 
     app.to_playback.on("change", function() {
