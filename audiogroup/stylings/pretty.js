@@ -1,4 +1,5 @@
 var closeShit = true;
+var flashed = false;
 var w, h, session;
 $(document).ready(function() {
   session = false;
@@ -120,9 +121,12 @@ function prettify() {
     $("#logo").css("left", 30);
     $("#logo").css("top", 30);
     $("#logo").css("width", 350);
-    setTimeout(function() {
-      flashCheckDiv();
-    }, 200);
+    if (!rec && !flashed) {
+      setTimeout(function() {
+        flashCheckDiv();
+      }, 200);
+      flashed = true;
+    }
   } else {
     var stuff = ["#join", "#sesDiv", "#nameDiv", "#logo"];
     var stuffNums = [h * 0.6, w * 0.3, w * 0.4, h * 0.35, w * 0.1, w * 0.5, h * 0.35, w * 0.6, w * 0.5, h * 0.25, 0, w];
