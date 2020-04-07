@@ -5,6 +5,7 @@ html, body {
   text-align: center;
   overflow: hidden;
   cursor: default;
+  outline: none;
 }
 
 input[type=text] {
@@ -150,6 +151,10 @@ input[type=text]:focus {
   color: orange;
 }
 
+.name {
+  margin-top: 10px;
+}
+
 #sesDiv {
   text-align: left;
   z-index: 201;
@@ -222,11 +227,12 @@ button {
   margin: 5px;
   padding: 5px;
   transition: 0.75s ease;
+  outline: none;
 }
 
 button:hover {
-  background: linear-gradient(45deg, #D8A62F 5%, #FC8E00 100%) !important;
-  color: #303040 !important;
+  background: linear-gradient(45deg, #D8A62F 5%, #FC8E00 100%);
+  color: #303040;
   cursor: pointer;
 }
 

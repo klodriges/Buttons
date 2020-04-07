@@ -181,6 +181,11 @@ function create_app(isMaster) {
       }
     });
 
+    app.to_record.on("change", function() {
+      console.log("app.to_record changed");
+      recordButton();
+    });
+
     app.to_playback.on("change", function() {
       if (this.vel) {
         let draw_metronome = function() {

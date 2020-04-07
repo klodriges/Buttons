@@ -23,6 +23,26 @@ $(window).resize(function() {
   prettify();
 });
 
+function recordButton() {
+  if (rec && app.to_record.pos == 0) {
+    $("#checkDiv").css("background", "linear-gradient(45deg, #D8A62F 5%, #FC8E00 100%)");
+    $("#checkDiv").css("border", "2px rgb(30, 30, 40) solid");
+    $("#checkDiv").css("color", "#303040");
+    $("#checkDiv").html("Recording allowed");
+  } else if (rec && app.to_record.pos != 0) {
+    $("#checkDiv").css("background", "linear-gradient(45deg, #EF5139 5%, #D64933 100%)")
+    $("#checkDiv").css("border", "2px #D64933 solid");
+    $("#checkDiv").css("color", "#303040");
+    $("#checkDiv").html("Recording");
+  } else if (!rec && app.to_record.pos == 0) {
+    $("#checkDiv").css("background", "#303040");
+    $("#checkDiv").css("border", "2px orange solid");
+    $("#checkDiv").css("color", "orange");
+    $("#checkDiv").html("Allow recording");
+  } else {
+    flashCheckDiv();
+  }
+}
 
 function prettify() {
 
@@ -57,7 +77,6 @@ function prettify() {
     $("#status").css("color", "orange");
     $("#sent").css("color", "orange");
 
-
   } else {
 
     var fontSizes = [15, 25, 30, 30, 15, 25];
@@ -84,16 +103,6 @@ function prettify() {
 
   }
 
-  if (rec) {
-    $("#checkDiv").css("background", "linear-gradient(45deg, #D8A62F 5%, #FC8E00 100%)");
-    $("#checkDiv").html("Recording allowed");
-    $("#checkDiv").css("color", "rgb(30, 30, 40)");
-  } else {
-    $("#checkDiv").css("background", "rgb(30, 30, 40)");
-    $("#checkDiv").html("Allow recording");
-    $("#checkDiv").css("color", "orange");
-  }
-
   for (var i = 0; i < arrOfStuff.length; i++) {
     for (var j = 0; j < arrOfStuff[i].length; j++) {
       $(arrOfStuff[i][j + 1]).css(arrOfStuff[i][0], arrOfSizes[i][j]);
@@ -111,6 +120,9 @@ function prettify() {
     $("#logo").css("left", 30);
     $("#logo").css("top", 30);
     $("#logo").css("width", 350);
+    setTimeout(function() {
+      flashCheckDiv();
+    }, 200);
   } else {
     var stuff = ["#join", "#sesDiv", "#nameDiv", "#logo"];
     var stuffNums = [h * 0.6, w * 0.3, w * 0.4, h * 0.35, w * 0.1, w * 0.5, h * 0.35, w * 0.6, w * 0.5, h * 0.25, 0, w];
@@ -142,3 +154,21 @@ function checkForLogo() {
     }, 250);
   }
 };
+
+function flashCheckDiv() {
+  console.log("flashing check div");
+  $("#checkDiv").css("border", "5px yellow solid");
+  $("#checkDiv").css("background", "#505060");
+  setTimeout(function() {
+    $("#checkDiv").css("border", "2px orange solid");
+    $("#checkDiv").css("background", "#303040");
+  }, 400);
+  setTimeout(function() {
+    $("#checkDiv").css("border", "5px yellow solid");
+    $("#checkDiv").css("background", "#505060");
+  }, 800);
+  setTimeout(function() {
+    $("#checkDiv").css("border", "2px orange solid");
+    $("#checkDiv").css("background", "#303040");
+  }, 1200);
+}

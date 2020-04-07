@@ -1,4 +1,3 @@
-
 function multiPlayer(target, sequencer, timingobjects) {
 
   let API = {
@@ -57,7 +56,9 @@ function multiPlayer(target, sequencer, timingobjects) {
         });
       }
       if (!API.syncs[evt.key]) {
-        API.syncs[evt.key] = MCorp.mediaSync(player.querySelector("audio"), timingobjects.playback, {skew: -val.offset});
+        API.syncs[evt.key] = MCorp.mediaSync(player.querySelector("audio"), timingobjects.playback, {
+          skew: -val.offset
+        });
       } else {
         API.syncs[evt.key].setSkew(-val.offset);
       }
@@ -94,25 +95,25 @@ function multiPlayer(target, sequencer, timingobjects) {
   };
 
   let mute = function(item) {
-    if (!item || !item.querySelector("audio")) return;  // not ready yet
+    if (!item || !item.querySelector("audio")) return; // not ready yet
     item.querySelector("audio").muted = true;
     item.classList.add("muted");
   };
 
   let unmute = function(item) {
-    if (!item || !item.querySelector("audio")) return;  // not ready yet
+    if (!item || !item.querySelector("audio")) return; // not ready yet
     item.querySelector("audio").muted = false;
     item.classList.remove("muted");
   };
 
   API.muteAll = function() {
-    target.querySelectorAll(".player").forEach(function(elem) { 
+    target.querySelectorAll(".player").forEach(function(elem) {
       mute(elem);
     });
   }
 
   API.unmuteAll = function() {
-    target.querySelectorAll(".player").forEach(function(elem) { 
+    target.querySelectorAll(".player").forEach(function(elem) {
       unmute(elem);
     });
   }

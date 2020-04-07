@@ -453,7 +453,7 @@
                     console.log("My profile is now:", profile);
                     app.dcannon.post(localStorage._sessionid_, {
                       id: parseInt(localStorage.vizid),
-                      startts: ts,
+                      startts: 0,
                       endts: 100000000,
                       epoc: app.to_epoc.pos - 0.100 - app.calibrate,
                       name: "profile",
@@ -473,6 +473,7 @@
         } else {
           rec = true;
         }
+        recordButton();
         prettify();
         if (rec) {
           app.record();
