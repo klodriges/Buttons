@@ -9,6 +9,8 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
   <script src="stylings/prettyPlay.js"></script>
 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <script src="https://mcorp.no/lib/mcorp-2.0a.js"></script>
   <script src="https://mcorp.no/lib/mediasync.js"></script>
   <script text="javascript" src="https://mcorp.no/lib/timingsrc-v2.js"></script>
@@ -18,28 +20,27 @@
 </head>
 
 <body>
-  <div class="header">
+  <div id="overlay">
     <div id="logo"></div>
   </div>
+  <div id="sideBar"></div>
 
-  <div id="ob"></div>
-  <div id="metronome2">
-    <div id="rep">0</div>
-    <div id="visBeat">
-      <div id="beat">1</div>
+  <div id="main">
+    <div id="top1"></div>
+
+    <div id="met"></div>
+
+    <div id="players2" class="players drop-area">
+      Participants: (click to mute)
+      <br>
+      <template id="template_player">
+        <div class="player">
+          <img class="pic">
+          <audio controls></audio>
+          <div class="name"></div>
+          <div class="timestamp"></div>
+      </template>
     </div>
-  </div>
-  <div id="players2" class="players drop-area">
-    Participants: (click to mute)
-    <br>
-    <template id="template_player">
-      <div class="player">
-        <img class="pic">
-        <audio controls></audio>
-        <div class="name"></div>
-        <div class="timestamp"></div>
-    </template>
-  </div>
 
   <div id="overlay"></div>
   <div id="sesDiv">Session id<br>
@@ -60,9 +61,10 @@
     <button id="clearall">Clear all</button>
   </div>
 
-  <div id="bpmDiv">Bpm: <input type="text" id="bpm" value="120" size=4></div>
-  <div id="bpcDiv">Takt: <input type="text" id="bpc" value="4" size=1>/<input type="text" id="bpc2" value="4" size=1>
-    <button id="setspeeds">Set speeds</button>
+    <div id="bpmDiv">Bpm: <input type="text" id="bpm" value="120" size=4></div>
+    <div id="bpcDiv">Takt: <input type="text" id="bpc" value="4" size=1>/<input type="text" id="bpc2" value="4" size=1>
+      <button id="setspeeds">Set speeds</button>
+    </div>
   </div>
 
   <audio src="hi.ogg" id="tick"></audio>

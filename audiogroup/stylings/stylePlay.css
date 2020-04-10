@@ -50,3 +50,165 @@ input[type=text]:focus {
   width: 90px;
   height: 90px;
 }
+
+#top1 {
+  position: relative;
+  top: 0px;
+  left: 0px;
+  background: #303040;
+  color: orange;
+  font-size: 30px;
+  font-family: Comfortaa, cursive;
+  text-align: center;
+  width: 100%;
+  height: 50px;
+}
+
+.top1Title {
+  float: left;
+  padding-left: 10px;
+  padding-top: 10px;
+  width: 350px;
+  height: 40px;
+  padding-right: 20px;
+  background: #303040;
+}
+
+.top1Option {
+  padding-top: 10px;
+  height: 40px;
+  background: none;
+  float: left;
+  width: 8%;
+  border: 3px orange;
+  border-style: hidden hidden hidden solid;
+  transition: 0.25s ease;
+}
+
+.top1Option:hover {
+  cursor: pointer;
+  background: orange;
+  color: #303040;
+}
+
+.top1Text {
+  padding-top: 10px;
+  height: 40px;
+}
+
+.top1Collapse {
+  width: 8%;
+  display: none;
+  float: left;
+  border: 3px orange;
+  border-style: hidden solid hidden hidden;
+  height: 40px;
+  padding-top: 10px;
+}
+
+.top1Collapse:hover {
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.top1Collapse img {
+  height: 40px;
+  width: 40px;
+  margin-top: -5px;
+}
+
+#met {
+  width: 50%;
+  background: #101020;
+  border: 3px orange solid;
+  border-style: solid solid hidden hidden;
+  position: absolute;
+  left: 0px;
+  top: 100px;
+  height: 40%;
+}
+
+#rep {
+  position: relative;
+  top: 60px;
+}
+
+#visBeat {
+  position: relative;
+  top: 140px;
+  left: 50%;
+  transform: translate(-50%);
+  width: 100px;
+  padding-top: 20px;
+  height: 80px;
+}
+
+#sideBar {
+  height: 100%;
+  width: 0;
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  background-color: #101020;
+  overflow-x: hidden;
+  transition: 0.5s;
+  padding-top: 60px;
+}
+
+#sideBar a {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: orange;
+  display: block;
+  transition: 0.3s;
+}
+
+#sideBar a:hover {
+  color: #f1f1f1;
+  cursor: pointer;
+}
+
+#main {
+  transition: margin-left .5s;
+  padding: 16px;
+}
+
+@media only screen and (max-width: 1300px) {
+  .top1Option {
+    display: none;
+    float: none;
+  }
+
+  .top1Collapse {
+    display: inline;
+  }
+
+  .top1Text {
+    font-size: 20px;
+    margin-right: -30px;
+  }
+}
+
+@media only screen and (max-width: 900px) {
+  #met {
+    height: 30%;
+  }
+
+  #rep {
+    width: 50%;
+    top: 100px;
+  }
+
+  #visBeat {
+    left: 66%;
+    top: 30px;
+  }
+}
+
+#overlay #logo {
+  height: 50px;
+  position: absolute;
+  top: 35%;
+}
