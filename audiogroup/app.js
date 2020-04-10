@@ -13,8 +13,8 @@ $(document).ready(function() {
     localStorage._sessionid_ = this.value;
   });
   MCorp.attribution(document.querySelector("#logo"), true);
+  if (document.querySelector(".top1Title")) MCorp.attribution(document.querySelector(".top1Title"), true);
   checkForLogo();
-
   if ($("#generateNewId").length > 0) {
     $("#generateNewId").click(function() {
       generateNewIdFunction(true);
