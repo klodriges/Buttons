@@ -119,7 +119,8 @@
   <button id="join">Join</button>
 
   <div id="metronome">
-    <div id="rep">0</div>
+    <div id="muteMetro" style="font-size:0.5em"><span class="mutemetronome"><input type="checkbox" checked />Silent</span></div>
+      <div id="rep">0</div>
     <div id="visBeat">
       <div id="beat">1</div>
     </div>
@@ -128,6 +129,10 @@
 
   <div id="bpmDiv">Bpm: <span id="bpm"></span></div>
   <div id="bpcDiv">Takt: <span id="bpc"></span></span></div>
+
+  <audio src="hi.ogg" id="tick"></audio>
+  <audio src="lo.ogg" id="tock"></audio>
+
 
   <div id="players" class="players">
     Participants: (click to mute)
@@ -408,12 +413,15 @@
                 };
                 var mediaRecorder = new MediaRecorder(stream);
                 window.mr = mediaRecorder;
-                console.log("Stream is", stream);
                 app.uploader = Uploader(SERVER);
                 let running = false;
                 app.to_record.on("change", function() {
                   // If the record motion is running, we shold record!
                   if (this.pos) { // We currently trigger on record - let this be a button
+                    if(mediaRecorder.state == "recording") {
+                      console.log("Record triggered while recording, ignore");
+                      return;
+                    }
                     if (app.disabled) return;
                     app.startTime = 0;
                     running = true;

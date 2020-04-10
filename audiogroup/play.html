@@ -29,7 +29,7 @@
       <div id="beat">1</div>
     </div>
   </div>
-  <div id="players2" class="players">
+  <div id="players2" class="players drop-area">
     Participants: (click to mute)
     <br>
     <template id="template_player">
@@ -52,7 +52,7 @@
     <div id="sessionDisplay"></div>
   </div>
 
-  <div id="muteDiv"><span class="muteall"><input type="checkbox" />Mute all</span></div>
+  <div id="muteDiv"><span class="muteall"><input type="checkbox"/>Mute all</span></div>
   <div id="buttons">
     <button id="stop">Stop</button>
     <button id="record">Record</button>
@@ -64,6 +64,9 @@
   <div id="bpcDiv">Takt: <input type="text" id="bpc" value="4" size=1>/<input type="text" id="bpc2" value="4" size=1>
     <button id="setspeeds">Set speeds</button>
   </div>
+
+  <audio src="hi.ogg" id="tick"></audio>
+  <audio src="lo.ogg" id="tock"></audio>
 
   <!--
   <audio id="a1" src="0_1585762118.375907" controls></audio>
@@ -114,30 +117,134 @@
             });
           });
 
-          document.querySelector("#record").addEventListener("click", function() {
+          document.querySelector("#record").addEventListener("click", function(evt) {
+            if (app.to_record.pos != 0) return;  // TODO Disable button to avoid this
+            evt.srcElement.disabled = true;
+            evt.srcElement.classList.add("disabled");
             app.to_record.update({
               position: 1
             });
             app.to_playback.update({
-              position: 0,
+              position: -5,  // 5 Seconds countdown
               velocity: 1
             });
           });
-
+          app.to_record.on("change", function() {
+            let btn = document.querySelector("#record");
+            if (this.pos == 0) {
+              btn.disabled = false;
+              btn.classList.remove("disabled");              
+            } else {
+              btn.disabled = true;
+              btn.classList.add("disabled");              
+            }
+          });
           document.querySelector("#clearall").addEventListener("click", function() {
             if (confirm("Clear everything?")) {
               // TODO: Need to keep the session - remove all vids one by one or re-add session
+              let keep_uploads = false;
               app.sequencer.getCues().forEach(function(cue) {
-                if (cue.data.key != "session") {
-                  console.log("Remove cue", cue.data.id);
-                  app.dcannon.remove(localStorage._sessionid_, cue.data.id);
+                if (cue.data.name == "profile" && !cue.data.value.uploaded) 
+                  keep_uploads = true;
+              });
+
+              app.sequencer.getCues().forEach(function(cue) {
+                if (cue.data.id != "session") {
+                  console.log(keep_uploads, cue.data.value.uploaded);
+                  if (keep_uploads && cue.data.value.uploaded) {
+                    return;
+                  } else {
+                    app.dcannon.remove(localStorage._sessionid_, cue.data.id);
+                  } 
                 }
               });
 
               // app.dcannon.clear(localStorage._sessionid_);
             }
           });
+
+      var uploadFile = function(file) {
+        console.log("Should upload file", file);
+        fetch('https://audio.mcorp.no/put', {
+            method: 'POST',
+            headers: {
+              "Content-Type": file.type
+            },
+            body: file
+          }).then(function(response) {
+            console.log("Got some response", response)
+            return response.json()
+          }).then(function(response) {
+            console.log("Success", response);
+
+            let id = (Math.random() * 1000000000).toFixed(0);
+            let profile = {
+              name: file.name,
+              pic: "https://audio.mcorp.no/tux/Tux Avatar (" + id % 945 + ").png",
+              url: response.filename,
+              offset: 0,
+              uploaded: true
+            }
+            console.log("Uploaded file:", profile, "key", id);
+            app.dcannon.post(localStorage._sessionid_, {
+              id: id,
+              startts: 0,
+              endts: 100000000,
+              epoc: app.to_epoc.pos - 0.100 - app.calibrate,
+              name: "profile",
+              value: profile
+            });
+
+
+
+            // app.addURL(response.filename);
+          }).catch(function(error) {
+            alert("Upload failed: " + error);
+          }
+          );      
+        }
+
+      app.handleFiles = function(files) {
+        ([...files]).forEach(uploadFile)
+      }
+
+      let dropArea = document.querySelector('.drop-area')
+      ;['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        console.log("REGISTERING DROP ON", dropArea);
+        dropArea.addEventListener(eventName, preventDefaults, false)
+      })
+
+      function preventDefaults (e) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+      ;['dragenter', 'dragover'].forEach(eventName => {
+        console.log("DRAGOVER");
+        dropArea.addEventListener(eventName, highlight, false)
+      })
+
+      ;['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false)
+      })
+
+      function highlight(e) {
+        dropArea.classList.add('highlight')
+      }
+
+      function unhighlight(e) {
+        dropArea.classList.remove('highlight')
+      }
+      dropArea.addEventListener('drop', handleDrop, false)
+
+      function handleDrop(e) {
+        let dt = e.dataTransfer
+        let files = dt.files
+
+        app.handleFiles(files)
+      }
+
         });
+
       }());
     });
   </script>

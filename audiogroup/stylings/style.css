@@ -284,6 +284,14 @@ button:hover {
   background: rgba(0, 0, 0, 0.3);
 }
 
+.disabled {
+  filter: grayscale(100%);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.highlight {
+  filter: blur(2px);  
+}
 #overlay {
   width: 100%;
   background-color: #050505;

@@ -3,7 +3,7 @@ function multiPlayer(target, sequencer, timingobjects) {
   let API = {
     syncs: {}
   };
-
+  let all_muted = false;
   function prettyTime(val) {
     var s = "";
     if (val < 0)
@@ -14,11 +14,16 @@ function multiPlayer(target, sequencer, timingobjects) {
     var hours = Math.floor((val - days * (60 * 60 * 24)) / (60 * 60));
     var mins = Math.floor((val - days * (60 * 60 * 24) - hours * (60 * 60)) / (60));
     var secs = Math.floor((val - days * (60 * 60 * 24) - hours * (60 * 60)) - mins * 60);
-    if (days > 0) s += days + "d ";
-    if (hours > 0) s += hours + "h ";
-    if (days == 0) {
-      if (mins > 0) s += mins + "m ";
+    if (days > 0) 
+      return days + " days";
+    if (hours > 0) {
+      return hours + " hours";
     }
+    if (mins > 0) {
+      return mins + " minutes";
+    }
+    return "now";
+
     if (days === 0 || hours === 0) {
       s += secs + "s"
     }
@@ -50,6 +55,9 @@ function multiPlayer(target, sequencer, timingobjects) {
         var clone = temp.content.cloneNode(true);
         player = clone.querySelector("div");
         player.setAttribute("id", "player" + evt.key);
+        if (all_muted) {
+          mute(player);
+        } 
         target.append(player);
         player.addEventListener("click", function(evt) {
           toggleMute(player);
@@ -107,12 +115,14 @@ function multiPlayer(target, sequencer, timingobjects) {
   };
 
   API.muteAll = function() {
+    all_muted = true;
     target.querySelectorAll(".player").forEach(function(elem) {
       mute(elem);
     });
   }
 
   API.unmuteAll = function() {
+    all_muted = false;
     target.querySelectorAll(".player").forEach(function(elem) {
       unmute(elem);
     });

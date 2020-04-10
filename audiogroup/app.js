@@ -58,12 +58,14 @@ function create_app(isMaster) {
       localStorage.vizid = (Math.random() * 1000000000).toFixed(0);
 
     let app = {};
+    app.metronome_muted = true;
     app.to_playback = new TIMINGSRC.TimingObject();
     app.to_epoc = new TIMINGSRC.TimingObject();
     app.to_record = new TIMINGSRC.TimingObject();
     app.to_bpc = new TIMINGSRC.TimingObject();
     app.to_bpm = new TIMINGSRC.TimingObject();
-    app.sequencer = TIMINGSRC.Sequencer(app.to_playback);
+    let to_limited = new TIMINGSRC.RangeConverter(app.to_playback, [0, 10000000]);
+    app.sequencer = TIMINGSRC.Sequencer(to_limited);
     app.dcannon = new DataCannon("wss://audio.mcorp.no/dc/audio", [app.sequencer]);
     let join_timeout;
 
@@ -84,6 +86,16 @@ function create_app(isMaster) {
             resolve2(m);
           });
         });
+      });
+    }
+
+    if (document.querySelector(".mutemetronome input")) {
+      document.querySelector(".mutemetronome input").addEventListener("change", function(evt) {
+        if (evt.srcElement.checked) {
+          app.metronome_muted = true;
+        } else {
+          app.metronome_muted = false;    
+        }
       });
     }
 
@@ -139,6 +151,26 @@ function create_app(isMaster) {
     app.to_bpm.on("change", function() {
       document.querySelector("#bpm").value = this.pos;
       document.querySelector("#bpm").innerHTML = this.pos;
+
+      if (this.pos == 0) return;
+      if (app._ticktock) app._ticktock.cancel();
+      app._ticktock = TIMINGSRC.setIntervalCallback(app.to_playback, function() {
+        // if (app.to_record.pos == 0) return;  
+        // Let metronome play on playback too
+        let beat_nr = Math.floor(app.to_playback.pos * (app.to_bpm.pos / 60.));
+        document.querySelector("#rep").innerHTML = Math.floor(beat_nr / app.bpc) || 0;
+
+        if (beat_nr < 0) beat_nr += 1000;
+        document.querySelector("#beat").innerHTML = Math.floor(beat_nr % app.bpc) + 1 || 0;
+
+        if (app.to_record.pos != 1) return;
+        if (app.metronome_muted) return;
+        if (Math.floor(beat_nr % app.bpc) == 0) {
+          document.querySelector("#tick").play();
+        } else {
+          document.querySelector("#tock").play();
+        }
+      }, 60. / this.pos);
     });
 
     let setupTOs = function(mcorp) {
@@ -188,21 +220,5 @@ function create_app(isMaster) {
         recordButton();
       }
     });
-
-    app.to_playback.on("change", function() {
-      if (this.vel) {
-        let draw_metronome = function() {
-          // Repetitions is beats mod beats pr cycle
-          let beat_nr = Math.floor(app.to_playback.pos * (app.to_bpm.pos / 60.));
-          document.querySelector("#rep").innerHTML = Math.floor(beat_nr / app.bpc);
-          document.querySelector("#beat").innerHTML = Math.floor(beat_nr % app.bpc) + 1;
-          //#rep
-          if (app.to_playback.vel)
-            requestAnimationFrame(draw_metronome);
-        }
-        requestAnimationFrame(draw_metronome);
-      }
-    });
-
   });
 }
