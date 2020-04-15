@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="stylings/stylePlay.css">
   <link href="https://fonts.googleapis.com/css?family=Comfortaa&display=swap" rel="stylesheet">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <script src="stylings/prettyPlay.js"></script>
 
   <script src="https://mcorp.no/lib/mcorp-2.0a.js"></script>
@@ -22,9 +23,15 @@
     <div id="logo"></div>
   </div>
 
+  <div style="display:none">
+    <div id="status" class="status"></div>
+    <div id="sent" class="sent"></div>
+  </div>
+
   <div id="ob"></div>
   <div id="metronome2">
-    <div id="rep">0</div>
+    <div id="muteMetro" style="font-size:0.5em"><span class="mutemetronome"><input type="checkbox" checked />Silent</span></div>
+        <div id="rep">0</div>
     <div id="visBeat">
       <div id="beat">1</div>
     </div>
@@ -35,9 +42,13 @@
     <template id="template_player">
       <div class="player">
         <img class="pic">
-        <audio controls></audio>
+        <audio></audio>
         <div class="name"></div>
         <div class="timestamp"></div>
+        <div class="icons">
+          <i class="material-icons lock">lock_open</i>
+          <i class="material-icons mic">mic_off</i>
+        </div>
     </template>
   </div>
 
@@ -58,6 +69,7 @@
     <button id="record">Record</button>
     <button id="playback">Playback</button>
     <button id="clearall">Clear all</button>
+    <button id="checkDiv">Allow rec</button>
   </div>
 
   <div id="bpmDiv">Bpm: <input type="text" id="bpm" value="120" size=4></div>
@@ -76,6 +88,10 @@
     $("#join").click(function() {
       (function f() {
         create_app(true).then(function(app) {
+          if (!app) {
+            alert("Something went wrong, please reload the page");
+            return;
+          }
           window.app = app;
 
           document.querySelector(".muteall input").addEventListener("change", function(e) {
@@ -150,11 +166,11 @@
 
               app.sequencer.getCues().forEach(function(cue) {
                 if (cue.data.id != "session") {
-                  console.log(keep_uploads, cue.data.value.uploaded);
                   if (keep_uploads && cue.data.value.uploaded) {
                     return;
                   } else {
-                    app.dcannon.remove(localStorage._sessionid_, cue.data.id);
+                    if (!cue.data.value.pinned)
+                      app.dcannon.remove(localStorage._sessionid_, cue.data.id);
                   } 
                 }
               });
@@ -164,7 +180,7 @@
           });
 
       var uploadFile = function(file) {
-        console.log("Should upload file", file);
+        let ts = app.to_epoc.pos;
         fetch('https://audio.mcorp.no/put', {
             method: 'POST',
             headers: {
@@ -185,12 +201,11 @@
               offset: 0,
               uploaded: true
             }
-            console.log("Uploaded file:", profile, "key", id);
             app.dcannon.post(localStorage._sessionid_, {
               id: id,
               startts: 0,
               endts: 100000000,
-              epoc: app.to_epoc.pos - 0.100 - app.calibrate,
+              epoc: ts,
               name: "profile",
               value: profile
             });

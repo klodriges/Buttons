@@ -26,7 +26,26 @@ function fixImg() {
 $(window).resize(function() {
   prettify();
 });
-
+function recordButton(rec) {
+  if (rec && app.to_record.pos == 0) {
+    $("#checkDiv").css("background", "linear-gradient(45deg, #D8A62F 5%, #FC8E00 100%)");
+    $("#checkDiv").css("border", "2px rgb(30, 30, 40) solid");
+    $("#checkDiv").css("color", "#303040");
+    $("#checkDiv").html("Recording allowed");
+  } else if (rec && app.to_record.pos != 0) {
+    $("#checkDiv").css("background", "linear-gradient(45deg, #EF5139 5%, #D64933 100%)")
+    $("#checkDiv").css("border", "2px #D64933 solid");
+    $("#checkDiv").css("color", "#303040");
+    $("#checkDiv").html("Recording");
+  } else if (!rec && app.to_record.pos == 0) {
+    $("#checkDiv").css("background", "#303040");
+    $("#checkDiv").css("border", "2px orange solid");
+    $("#checkDiv").css("color", "orange");
+    $("#checkDiv").html("Allow recording");
+  } else {
+    flashCheckDiv();
+  }
+}
 
 function prettify() {
   var w = $(window).width();

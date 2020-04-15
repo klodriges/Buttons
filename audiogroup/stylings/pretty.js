@@ -24,7 +24,7 @@ $(window).resize(function() {
   prettify();
 });
 
-function recordButton() {
+function recordButton(rec) {
   if (rec && app.to_record.pos == 0) {
     $("#checkDiv").css("background", "linear-gradient(45deg, #D8A62F 5%, #FC8E00 100%)");
     $("#checkDiv").css("border", "2px rgb(30, 30, 40) solid");
@@ -45,7 +45,7 @@ function recordButton() {
   }
 }
 
-function prettify() {
+function prettify(rec) {
 
   var abs = ["#nameDiv", "#checkDiv", "#metronome", "#rep", "#beat", "#bpmDiv", "#bpcDiv", "#visBeat", "#sent", "#status", "#players", "#sesDiv", "#overlay", "#join"];
   for (var i = 0; i < abs.length; i++) {
